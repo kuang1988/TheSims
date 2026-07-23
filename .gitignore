@@ -5,4 +5,6 @@ dist
 attr-audit.json
 sect-fork-report.md
 choice-audit-report.md
-/docs
+design/sect-fork-report.md
+design/choice-audit-report.md
+design/death-audit-report.md

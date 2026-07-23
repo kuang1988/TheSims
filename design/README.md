@@ -29,33 +29,24 @@ npm run choice-audit     # 空气抉择应为 0
 npm run death-audit      # 死因种类与寿终占比（可选）
 ```
 
-## 生产构建与 GitHub Pages
+## 生产构建与静态托管
 
 ```bash
 npm run build
 ```
 
-产物输出到 **`docs/`**（并提交到仓库），供 GitHub Pages 直接托管。
-
-### 仓库 Settings
-
-1. 打开 https://github.com/kuang1988/TheSims/settings/pages
-2. **Source** 选 **Deploy from a branch**
-3. Branch 选 **main**，文件夹选 **/docs**
-4. Save 后等待约 1 分钟，访问：
-
-`https://kuang1988.github.io/TheSims/`
-
-之后每次改代码，本地执行 `npm run build`，把更新后的 `docs/` 一并提交推送即可。
-
-本地预览构建结果：
+产物在 `dist/`。任意静态服务器即可：
 
 ```bash
 npm run preview
+# 或：npx serve dist
+# 或：将 dist 目录部署到 GitHub Pages / Netlify / 任意 CDN 静态站点
 ```
+
+GitHub Pages 示例：把 `dist` 推到 `gh-pages` 分支，或在 Actions 中 `npm ci && npm run build` 后上传 `dist`。
 
 ## 设计与计划
 
-- `design/设计文档.md` — 玩法与数据口径
-- `design/迭代计划.md` — Phase 7 路线图与验收
-- `design/优化规划.md` — 前序优化脉络
+- `设计文档.md` — 玩法与数据口径
+- `迭代计划.md` — Phase 7 路线图与验收
+- `优化规划.md` — 前序优化脉络
