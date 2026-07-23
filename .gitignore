@@ -1,0 +1,8 @@
+node_modules
+dist
+.DS_Store
+*.local
+attr-audit.json
+sect-fork-report.md
+choice-audit-report.md
+/docs

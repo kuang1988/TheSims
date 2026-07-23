@@ -1,0 +1,395 @@
+import type { EventDef } from '../types'
+
+/** Phase 7：死法出口 + 关系具名回调（品味层，不新开玩法） */
+export const PHASE7_EVENTS: EventDef[] = [
+  // ═══ 死法出口 ═══
+  {
+    id: 'death_court_edict',
+    name: '天威难测',
+    text: '一道密旨到了你面前：或是赐死自尽，或是押赴刑场。朝堂上已无人替你说话。',
+    stages: ['壮年', '晚年'],
+    tags: ['朝廷', '结局'],
+    weight: 2,
+    importance: 5,
+    needsChoice: true,
+    once: true,
+    conditions: { anyFlags: ['official', 'fugitive', 'qincha'], forbidFlags: ['left_court_safe'] },
+    choices: [
+      {
+        text: '饮鸩遵旨',
+        effects: { death: '朝廷赐死', addFlag: 'death_court' },
+        tendencyTags: ['谨慎'],
+      },
+      {
+        text: '抗旨出逃',
+        effects: {
+          attrs: { 体魄: -15, 心性: -5 },
+          addFlags: ['fugitive', 'left_court_safe'],
+          queueEvent: { id: 'wanderer_bounty_board', delayYears: 2 },
+        },
+        tendencyTags: ['冒险', '狠厉'],
+      },
+    ],
+  },
+  {
+    id: 'death_love_end',
+    name: '情劫末路',
+    text: '道侣已去，余生只剩空屋。有人劝你看开，有人递来一壶酒——说是可以一了百了。',
+    stages: ['壮年', '晚年'],
+    tags: ['情缘', '结局'],
+    chain: 'love',
+    weight: 2,
+    importance: 5,
+    needsChoice: true,
+    once: true,
+    minAge: 35,
+    conditions: { flags: ['lost_lover'], forbidFlags: ['love_finale', 'refused_qingjie'] },
+    choices: [
+      {
+        text: '一醉不醒',
+        effects: { death: '情劫难渡，自绝于世', addFlag: 'death_qingjie' },
+        tendencyTags: ['谨慎'],
+      },
+      {
+        text: '咬牙活下去',
+        effects: {
+          attrs: { 心性: 8, 体魄: -4 },
+          addFlag: 'refused_qingjie',
+          queueEvent: { id: 'rel_lover_revisit', delayYears: 1 },
+        },
+        tendencyTags: ['侠义', '修炼'],
+      },
+    ],
+  },
+  {
+    id: 'death_zuohua',
+    name: '坐化之时',
+    text: '你隐居已久，真气渐散。今日山风极静，像是在等你把最后一口气吐干净。',
+    stages: ['晚年'],
+    tags: ['结局'],
+    weight: 3,
+    importance: 4,
+    needsChoice: true,
+    once: true,
+    minAge: 70,
+    conditions: { anyFlags: ['retreated', 'yinshi_path', 'wudang_hermit'], forbidFlags: ['zuohua_done'] },
+    choices: [
+      {
+        text: '盘膝坐化',
+        effects: { death: '山中坐化，无疾而终', addFlags: ['zuohua_done', 'zuohua_ready'] },
+        tendencyTags: ['修炼', '谨慎'],
+      },
+      {
+        text: '再撑数年',
+        effects: { attrs: { 寿命: 5, 体魄: -6 }, addFlag: 'zuohua_done', logExtra: '你多偷了几年人间。' },
+        tendencyTags: ['冒险'],
+      },
+    ],
+  },
+  {
+    id: 'death_breakthrough',
+    name: '破境之劫',
+    text: '你冲击更高境界，真气逆乱。此刻退则废功，进则可能经脉尽断。',
+    stages: ['壮年', '晚年'],
+    tags: ['修炼', '结局'],
+    weight: 2,
+    importance: 5,
+    needsChoice: true,
+    once: true,
+    minAge: 40,
+    conditions: { minRealmIndex: 3, forbidFlags: ['broke_through_safe'] },
+    choices: [
+      {
+        text: '硬闯',
+        effects: {
+          combat: {
+            foePower: 70,
+            foeName: '心魔',
+            onWin: { setRealm: '大宗师', addFlag: 'broke_through_safe', attrs: { 武力: 10 } },
+            onLose: { death: '突破失败，元气尽散', addFlag: 'qi_deviation' },
+          },
+        },
+        tendencyTags: ['冒险', '修炼'],
+      },
+      {
+        text: '散功保命',
+        effects: {
+          demoteRealm: '先天',
+          attrs: { 体魄: 8, 武力: -15 },
+          addFlag: 'broke_through_safe',
+          logExtra: '你保住了性命，却也断了巅峰之路。',
+        },
+        tendencyTags: ['谨慎'],
+      },
+    ],
+  },
+  {
+    id: 'death_sect_martyr',
+    name: '山门浴血',
+    text: '外敌破山，同门死伤枕藉。有人喊你突围，有人喊你断后。',
+    stages: ['壮年', '晚年'],
+    tags: ['门派', '战斗', '结局'],
+    chain: 'sect',
+    weight: 1,
+    importance: 5,
+    needsChoice: true,
+    once: true,
+    minAge: 48,
+    conditions: {
+      anyFlags: ['sect_huashan', 'sect_wudang', 'sect_shaolin', 'sect_emei', 'sect_gaibang'],
+      // 终章前不抢戏；离派后不再殉门
+      forbidFlags: ['left_sect', 'sect_martyr_done', 'sect_finale'],
+    },
+    choices: [
+      {
+        text: '断后殉门',
+        effects: { death: '门派殉道，血染山门', addFlags: ['sect_martyr', 'sect_martyr_done'] },
+        tendencyTags: ['侠义'],
+      },
+      {
+        text: '护着伤者突围',
+        effects: {
+          attrs: { 体魄: -12, 正道声望: 10 },
+          addFlags: ['sect_martyr_done', 'war_hero', 'helped_people'],
+          combat: {
+            foePower: 55,
+            foeName: '破山敌军',
+            onWin: { attrs: { 武力: 5 }, grantTitle: 'zhongyi' },
+            onLose: { attrs: { 体魄: -20 }, addFlag: 'sect_scar' },
+          },
+        },
+        tendencyTags: ['侠义', '冒险'],
+      },
+      {
+        text: '趁乱脱身',
+        effects: {
+          attrs: { 心性: -8, 体魄: -6 },
+          addFlags: ['sect_martyr_done', 'left_sect', 'wanderer'],
+          logExtra: '你没死在山门，却也再难回山。',
+        },
+        tendencyTags: ['狠厉', '谨慎'],
+      },
+    ],
+  },
+  {
+    id: 'death_poison_night',
+    name: '毒夜',
+    text: '夜里毒性翻涌。你早知有这一天——或是旧毒，或是仇家所赐。',
+    stages: ['壮年', '晚年'],
+    tags: ['结局'],
+    weight: 2,
+    importance: 4,
+    needsChoice: true,
+    once: true,
+    conditions: { anyFlags: ['poisoned', 'emei_poison_kept', 'duyi_path'], forbidFlags: ['poison_cleared'] },
+    choices: [
+      {
+        text: '认命闭眼',
+        effects: { death: '毒发身亡', addFlag: 'death_poison' },
+        tendencyTags: ['谨慎'],
+      },
+      {
+        text: '以毒攻毒拼一把',
+        effects: {
+          attrs: { 体魄: -18, 武力: 4 },
+          addFlag: 'poison_cleared',
+          combat: {
+            foePower: 48,
+            foeName: '体内毒素',
+            onWin: { attrs: { 体魄: 10 }, addMartialArt: 'poison' },
+            onLose: { death: '毒发身亡' },
+          },
+        },
+        tendencyTags: ['冒险', '狠厉'],
+      },
+    ],
+  },
+  {
+    id: 'death_betrayal_blade',
+    name: '白刃相向',
+    text: '你最信任的徒弟挡在面前，刀尖却对准了你的心口。',
+    stages: ['壮年', '晚年'],
+    tags: ['结局', '关系'],
+    weight: 2,
+    importance: 5,
+    needsChoice: true,
+    once: true,
+    conditions: { flags: ['hunted_student'], forbidFlags: ['betrayal_resolved'] },
+    choices: [
+      {
+        text: '不还手',
+        effects: { death: '被徒弟背叛而死', addFlag: 'betrayal_resolved' },
+        tendencyTags: ['侠义', '谨慎'],
+      },
+      {
+        text: '亲手了结这段师徒',
+        effects: {
+          attrs: { 心性: -12, 体魄: -8 },
+          addFlag: 'betrayal_resolved',
+          setRelation: { kind: '徒弟', clear: true },
+          grantTitle: 'eguiman',
+        },
+        tendencyTags: ['狠厉'],
+      },
+    ],
+  },
+
+  // ═══ 关系具名回调 ═══
+  {
+    id: 'rel_lover_revisit',
+    name: '故人书信',
+    text: '一封旧信辗转送到你手里。信上字迹你认得——是那人道侣的笔迹，或是其亲友代笔，约你于旧地一见。',
+    stages: ['青年', '壮年', '晚年'],
+    tags: ['情缘', '关系'],
+    chain: 'love',
+    weight: 1,
+    importance: 4,
+    needsChoice: true,
+    once: true,
+    conditions: {
+      anyFlags: ['lover', 'married', 'lost_lover', 'saved_lover', 'refused_qingjie'],
+      forbidFlags: ['lover_revisited'],
+    },
+    choices: [
+      {
+        text: '赴约',
+        effects: {
+          attrs: { 心性: 5, 魅力: 3 },
+          addFlag: 'lover_revisited',
+          setRelation: { kind: '道侣', bond: 70, note: '故地重逢' },
+          queueEvent: { id: 'love_finale', delayYears: 3 },
+          logExtra: '你赴约见到了故人，往事如潮。',
+        },
+        tendencyTags: ['交际', '侠义'],
+      },
+      {
+        text: '烧了信，不再见',
+        effects: {
+          attrs: { 心性: -3 },
+          addFlags: ['lover_revisited', 'lost_lover'],
+          setRelation: { kind: '道侣', clear: true },
+          logExtra: '你把信烧了。有些人，只配活在记忆里。',
+        },
+        tendencyTags: ['谨慎'],
+      },
+    ],
+  },
+  {
+    id: 'rel_master_letter',
+    name: '师门来信',
+    text: '师父（或师门长辈）托人带话：山门有事，想听你一声回音——或是传功，或是诀别。',
+    stages: ['青年', '壮年', '晚年'],
+    tags: ['门派', '关系'],
+    weight: 2,
+    importance: 4,
+    needsChoice: true,
+    once: true,
+    conditions: {
+      anyFlags: ['has_master', 'sect_loyal'],
+      forbidFlags: ['master_letter_done', 'left_sect'],
+    },
+    choices: [
+      {
+        text: '回山见师父一面',
+        effects: {
+          attrs: { 心性: 6, 悟性: 3 },
+          addFlag: 'master_letter_done',
+          setRelation: { kind: '师父', bond: 80, note: '再传一式' },
+          upgradeMartialArt: 'any',
+          queueEvent: { id: 'old_pass_art', delayYears: 4 },
+          logExtra: '你回山见了师父。那一式，像把前半生又教了一遍。',
+        },
+        tendencyTags: ['修炼', '侠义'],
+      },
+      {
+        text: '回信告假，不归',
+        effects: {
+          attrs: { 心性: -2 },
+          addFlag: 'master_letter_done',
+          setRelation: { kind: '师父', bond: 20, note: '渐行渐远' },
+          logExtra: '你回了信，却没回去。师门的灯，从此远了。',
+        },
+        tendencyTags: ['谨慎'],
+      },
+    ],
+  },
+  {
+    id: 'rel_disciple_return',
+    name: '徒儿归来',
+    text: '多年前收下的徒弟找上门来：有人是来报恩传讯，有人是来求你出手——也有人眼中闪着别的东西。',
+    stages: ['壮年', '晚年'],
+    tags: ['关系'],
+    weight: 2,
+    importance: 4,
+    needsChoice: true,
+    once: true,
+    conditions: { anyFlags: ['has_student'], forbidFlags: ['disciple_return_done'] },
+    choices: [
+      {
+        text: '温酒叙旧，再指点一招',
+        effects: {
+          attrs: { 心性: 4, 正道声望: 5 },
+          addFlag: 'disciple_return_done',
+          setRelation: { kind: '徒弟', bond: 75, note: '传灯' },
+          queueEvent: { id: 'old_pass_art', delayYears: 2 },
+          logExtra: '徒儿归来。你又当了一回师父。',
+        },
+        tendencyTags: ['修炼', '交际'],
+      },
+      {
+        text: '察觉异样，先防一手',
+        effects: {
+          attrs: { 心性: -4 },
+          addFlags: ['disciple_return_done', 'hunted_student'],
+          setRelation: { kind: '仇敌', bond: -50, revengeIn: 2, note: '逆徒' },
+          queueEvent: { id: 'death_betrayal_blade', delayYears: 2 },
+          logExtra: '你从徒儿眼里看见了刀光。',
+        },
+        tendencyTags: ['谨慎', '狠厉'],
+      },
+    ],
+  },
+  {
+    id: 'rel_enemy_named_echo',
+    name: '旧仇未了',
+    text: '江湖传言：你的仇家又活了过来，或是其子弟顶着旧名号找上门。清算，并未结束。',
+    stages: ['青年', '壮年', '晚年'],
+    tags: ['关系', '战斗'],
+    weight: 2,
+    importance: 4,
+    needsChoice: true,
+    once: true,
+    conditions: { flags: ['enemy_due'], forbidFlags: ['enemy_echo_done'] },
+    choices: [
+      {
+        text: '约战了断',
+        effects: {
+          addFlag: 'enemy_echo_done',
+          combat: {
+            foePower: 58,
+            foeName: '旧仇',
+            onWin: {
+              attrs: { 武力: 6, 正道声望: 4 },
+              setRelation: { kind: '仇敌', clear: true },
+              removeFlag: 'enemy_due',
+              logExtra: '旧仇已了。你却不觉得轻松。',
+            },
+            onLose: { death: '仇敌寻仇，命丧黄泉' },
+          },
+        },
+        tendencyTags: ['冒险', '狠厉'],
+      },
+      {
+        text: '远走，再拖几年',
+        effects: {
+          attrs: { 福缘: -3 },
+          addFlags: ['enemy_echo_done', 'wanderer'],
+          setRelation: { kind: '仇敌', revengeIn: 5, bond: -60 },
+          removeFlag: 'enemy_due',
+          logExtra: '你又逃了一程。仇，只是换了日子。',
+        },
+        tendencyTags: ['谨慎'],
+      },
+    ],
+  },
+]
