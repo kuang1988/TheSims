@@ -16,6 +16,13 @@ export const ORIGINS: OriginDef[] = [
     tags: ['商途', '富庶'],
   },
   {
+    id: 'artisan',
+    name: '工匠门里',
+    desc: '锤凿声里长大，手稳眼明，却少功名路。',
+    mods: { 悟性: 6, 体魄: 6, 根骨: 4, 财富: 5, 魅力: -2 },
+    tags: ['工匠', '民间'],
+  },
+  {
     id: 'scholar',
     name: '书香门第',
     desc: '诗书传家，才思敏捷，却少了几分筋骨之利。',

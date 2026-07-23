@@ -14,6 +14,12 @@ import {
   sectStoryWeightFactor,
 } from '../lib/sectPath'
 import {
+  assignCivicIntentFromOrigin,
+  ensureCivicStoryQueue,
+  getCivicPath,
+  hasMajorFaction,
+} from '../lib/civicPath'
+import {
   countSectFinaleDone,
   enforceSingleSectFinale,
   leaveSect,
@@ -70,6 +76,7 @@ import {
   hasViolentDeathContext,
   primaryDeathTag,
   rewriteLateDeath,
+  sanitizeDeathReason,
   trySparePrematureDeath,
 } from '../lib/deathTags'
 import { ensureRelationCallbacks } from '../lib/relationPath'
@@ -570,6 +577,22 @@ const CHAIN_FAMILIES: { id: string; flags: string[]; chains: string[] }[] = [
     flags: ['helped_people', 'alliance_leader', 'pomo_path', 'war_hero', 'justice_finale'],
     chains: ['justice'],
   },
+  {
+    id: 'civic',
+    flags: [
+      'civic_shi',
+      'civic_nong',
+      'civic_gong',
+      'civic_shang',
+      'civic_wanderer',
+      'civic_shi_finale',
+      'civic_nong_finale',
+      'civic_gong_finale',
+      'civic_shang_finale',
+      'civic_wanderer_finale',
+    ],
+    chains: ['civic'],
+  },
 ]
 
 function activeChainFamilies(c: Character): string[] {
@@ -585,6 +608,8 @@ function eventChainFamily(e: EventDef): string | null {
 /** 队列：非主族终章级事件可延后（保留），他门终章直接丢 */
 function queueEventAllowed(c: Character, e: EventDef): boolean {
   if (shouldBlockSectFinaleEvent(c, e)) return false
+  // 凡尘全生涯归宿：未入名门时必须能播，不被情缘/正道软锁挡住
+  if (e.chain === 'civic' && !hasMajorFaction(c)) return true
   const primary = primaryChainFamily(c)
   if (!primary) return true
   const fam = eventChainFamily(e)
@@ -639,6 +664,11 @@ export function eventWeight(c: Character, e: EventDef): number {
   }
   if (active.length >= 2 && !e.chain && e.importance <= 2 && !e.conditions?.flags && !e.conditions?.anyFlags) {
     w *= 0.35
+  }
+
+  if (e.chain === 'civic') {
+    if (hasMajorFaction(c)) w *= 0.12
+    else if (getCivicPath(c)) w *= 1.85
   }
 
   if (c.yearsWithoutMajor >= 5 && e.importance >= 4) w *= 1.8
@@ -925,6 +955,28 @@ export class LifeSimulator {
         })
         return null
       }
+      // 凡尘弧未归宿：软延一次，保证能播到晚年拍
+      {
+        const civic = getCivicPath(c)
+        if (
+          civic &&
+          !hasMajorFaction(c) &&
+          !c.flags.includes(`civic_${civic}_finale`) &&
+          !c.flags.includes('civic_story_near_death') &&
+          c.age < Math.min(c.lifespan - 5, 56)
+        ) {
+          c.attrs.体魄 = 10
+          c.flags.push('civic_story_near_death')
+          this.push({
+            age: c.age,
+            kind: 'system',
+            title: '凡尘未了',
+            text: '你伤重卧床，却仍记挂着未完的生计与归宿。这条凡人传，还不能停在半页。',
+            importance: 4,
+          })
+          return null
+        }
+      }
       // 终章已落、余波未尽：软延死一次，避免「终章当日暴毙」
       if (hasPendingAftermath(c) && !c.flags.includes('aftermath_near_death')) {
         c.attrs.体魄 = 10
@@ -974,6 +1026,7 @@ export class LifeSimulator {
     this.yearlyDecay()
     ensureSectStoryQueue(c)
     ensureSectAftermath(c)
+    ensureCivicStoryQueue(c)
     ensureRelationCallbacks(c)
 
     // 仇敌倒计时：到期则强制排队寻仇事件
@@ -1095,13 +1148,13 @@ export class LifeSimulator {
           [...yearLogs].reverse().find((l) => l.kind === 'death')?.text ?? choice.effects.death
         if (deathMsg) {
           this.ended = true
-          this.deathReason = deathMsg
+          this.deathReason = sanitizeDeathReason(c, deathMsg)
           if (!yearLogs.some((l) => l.kind === 'death')) {
             pushYear({
               age: c.age,
               kind: 'death',
               title: '陨落',
-              text: deathMsg,
+              text: this.deathReason,
               importance: 5,
             })
           }
@@ -1158,13 +1211,13 @@ export class LifeSimulator {
       [...yearLogs].reverse().find((l) => l.kind === 'death')?.text ?? choice.effects.death
     if (deathMsg) {
       this.ended = true
-      this.deathReason = deathMsg
+      this.deathReason = sanitizeDeathReason(this.character, deathMsg)
       if (!yearLogs.some((l) => l.kind === 'death')) {
         pushYear({
           age: this.character.age,
           kind: 'death',
           title: '陨落',
-          text: deathMsg,
+          text: this.deathReason,
           importance: 5,
         })
       }
@@ -1232,7 +1285,7 @@ export class LifeSimulator {
       if (last.died || last.pendingChoice) return last
     }
     this.ended = true
-    this.deathReason = '寿元耗尽，寿终正寝'
+    this.deathReason = sanitizeDeathReason(this.character, flavorLifespanDeath(this.character))
     return { logs: last.logs, pendingChoice: null, died: true, deathReason: this.deathReason }
   }
 }
@@ -1309,6 +1362,7 @@ export function createBirth(
 
   c.lifespan = clamp(c.lifespan, 45, 140)
   c.attrs.体魄 = clamp(c.attrs.体魄, 5, 100)
+  assignCivicIntentFromOrigin(c, origin.id, origin.tags)
   return c
 }
 

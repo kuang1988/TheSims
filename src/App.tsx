@@ -133,8 +133,9 @@ export default function App() {
   const [showAllTitles, setShowAllTitles] = useState(false)
   const [reviewClimaxOnly, setReviewClimaxOnly] = useState(false)
   const [foldLowLogs, setFoldLowLogs] = useState(prefs.foldLowLogs)
-  const [copyTip, setCopyTip] = useState('')
+  const [toast, setToast] = useState<{ message: string; kind: 'ok' | 'err' | 'info' } | null>(null)
   const [ritualTip, setRitualTip] = useState('')
+  const [logFlash, setLogFlash] = useState(false)
   const [runStats, setRunStats] = useState<RunStats>(() => loadStats())
   const [showCodex, setShowCodex] = useState(false)
   const [newAchievements, setNewAchievements] = useState<AchievementDef[]>([])
@@ -145,10 +146,24 @@ export default function App() {
 
   const simRef = useRef<LifeSimulator | null>(null)
   const logEndRef = useRef<HTMLDivElement | null>(null)
+  const logStreamRef = useRef<HTMLDivElement | null>(null)
+  const toastTimer = useRef<number | null>(null)
+
+  const showToast = useCallback((message: string, kind: 'ok' | 'err' | 'info' = 'info') => {
+    setToast({ message, kind })
+    if (toastTimer.current) window.clearTimeout(toastTimer.current)
+    toastTimer.current = window.setTimeout(() => setToast(null), 2000)
+  }, [])
 
   useEffect(() => {
     savePlayPrefs({ mode, autoSpeed, majorOnly, foldLowLogs })
   }, [mode, autoSpeed, majorOnly, foldLowLogs])
+
+  useEffect(() => {
+    return () => {
+      if (toastTimer.current) window.clearTimeout(toastTimer.current)
+    }
+  }, [])
 
   const canLockTrait = codex.achievements.length >= 1
 
@@ -175,23 +190,20 @@ export default function App() {
   const applySeed = () => {
     const n = Number(seedInput.trim())
     if (!Number.isFinite(n) || n < 0) {
-      setCopyTip('请输入有效的非负整数种子')
-      window.setTimeout(() => setCopyTip(''), 2000)
+      showToast('请输入有效的非负整数种子', 'err')
       return
     }
     rollBirth(Math.floor(n) % 1_000_000_000)
-    setCopyTip('已载入种子（同 seed 可比抉择）')
-    window.setTimeout(() => setCopyTip(''), 2000)
+    showToast('已载入种子（同 seed 可比抉择）', 'ok')
   }
 
   const copySeed = async () => {
     try {
       await navigator.clipboard.writeText(String(seed))
-      setCopyTip('种子已复制')
+      showToast('种子已复制', 'ok')
     } catch {
-      setCopyTip('复制失败')
+      showToast('复制失败', 'err')
     }
-    window.setTimeout(() => setCopyTip(''), 2000)
   }
 
   const changeGender = (option: GenderOption) => {
@@ -268,6 +280,15 @@ export default function App() {
       setRunning(false)
       window.setTimeout(() => setRitualTip(''), 2200)
     }
+    if (mode === 'auto' && gained.some((l) => l.importance >= 5)) {
+      setLogFlash(true)
+      window.setTimeout(() => setLogFlash(false), 850)
+      const flash = gained.find((l) => l.importance >= 5)
+      if (flash) {
+        setRitualTip(flash.title)
+        window.setTimeout(() => setRitualTip(''), 1600)
+      }
+    }
     if (result.pendingChoice) {
       setPending(result.pendingChoice)
       setRunning(false)
@@ -313,7 +334,13 @@ export default function App() {
   }, [screen, running, pending, mode, autoSpeed, stepYear, character.age])
 
   useEffect(() => {
-    logEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const stream = logStreamRef.current
+    if (!stream || !logEndRef.current) return
+    const distance = stream.scrollHeight - stream.scrollTop - stream.clientHeight
+    // 用户上翻阅读时不抢滚动
+    if (distance < 120) {
+      logEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
   }, [logs.length, pending])
 
   const visibleLogs = useMemo(() => {
@@ -346,16 +373,20 @@ export default function App() {
     const text = formatShareText(ending, seed)
     try {
       await navigator.clipboard.writeText(text)
-      setCopyTip('已复制生平短传')
+      showToast('已复制生平短传', 'ok')
     } catch {
-      setCopyTip('复制失败，请手动选择文本')
+      showToast('复制失败，请手动选择文本', 'err')
     }
-    window.setTimeout(() => setCopyTip(''), 2000)
   }
 
   return (
     <div className="app">
       <div className="bg-ink" aria-hidden />
+      {toast && (
+        <div className="toast-host" role="status" aria-live="polite">
+          <div className={`toast toast--${toast.kind}`}>{toast.message}</div>
+        </div>
+      )}
       <header className="topbar">
         <div className="brand">武侠人生模拟器</div>
         {screen === 'life' && (
@@ -561,7 +592,6 @@ export default function App() {
                 ) : (
                   <p className="muted">解锁任意成就后，可锁定 1 个词条再随机其余。</p>
                 )}
-                {copyTip && screen === 'birth' && <p className="copy-tip">{copyTip}</p>}
               </div>
             )}
             {showCodex && <CodexPanel codex={codex} />}
@@ -611,8 +641,8 @@ export default function App() {
                 setCharacter(structuredClone(sim.character))
               }} />
             ) : (
-              <div className="log-panel">
-                <div className="log-stream">
+              <div className={`log-panel${logFlash ? ' log-panel--flash' : ''}`}>
+                <div className="log-stream" ref={logStreamRef}>
                   {mode === 'auto' && foldLowLogs && logs.length !== visibleLogs.length && (
                     <p className="log-fold-hint muted">
                       已折叠 {logs.length - visibleLogs.length} 条日常，可取消上方勾选查看全文
@@ -636,6 +666,7 @@ export default function App() {
                 {pending && (
                   <div className="choice-box">
                     <h3>如何抉择？</h3>
+                    <p className="choice-box__hint">此岔路口将改写后半生，请择一路。</p>
                     <div className="choice-list">
                       {pending.choices.map((ch, i) => (
                         <button key={i} type="button" className="btn choice" onClick={() => choose(ch)}>
@@ -647,13 +678,16 @@ export default function App() {
                 )}
 
                 {mode === 'semi' && !pending && !running && (
-                  <div className="cta-row">
-                    <button type="button" className="btn primary" onClick={() => setRunning(true)}>
-                      继续推演
-                    </button>
-                    <button type="button" className="btn" onClick={stepYear}>
-                      活一年
-                    </button>
+                  <div className="semi-actions">
+                    <p className="semi-actions__hint">推演会自动经过日常；遇重大抉择时会再次停下。</p>
+                    <div className="cta-row">
+                      <button type="button" className="btn primary" onClick={() => setRunning(true)}>
+                        继续推演人生
+                      </button>
+                      <button type="button" className="btn" onClick={stepYear}>
+                        只过一年
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -684,17 +718,15 @@ export default function App() {
               </button>
               <button
                 type="button"
-                className="btn primary"
+                className="btn"
                 onClick={() => {
                   downloadShareCard(ending, seed)
-                  setCopyTip('已生成分享图')
-                  window.setTimeout(() => setCopyTip(''), 2000)
+                  showToast('已生成分享图', 'ok')
                 }}
               >
                 下载分享图
               </button>
             </div>
-            {copyTip && <p className="copy-tip">{copyTip}</p>}
 
             <div className="cta-row ending-inspect">
               <button

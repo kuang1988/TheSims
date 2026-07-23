@@ -210,7 +210,7 @@ export const PHASE7_EVENTS: EventDef[] = [
     text: '你最信任的徒弟挡在面前，刀尖却对准了你的心口。',
     stages: ['壮年', '晚年'],
     tags: ['结局', '关系'],
-    weight: 2,
+    weight: 1,
     importance: 5,
     needsChoice: true,
     once: true,

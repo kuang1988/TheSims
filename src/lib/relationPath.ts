@@ -27,8 +27,8 @@ export function ensureRelationCallbacks(c: Character): void {
     pushQueue(c, 'rel_master_letter', c.age + 3)
   }
 
-  if (c.age >= 40 && c.flags.includes('has_student') && !c.flags.includes('disciple_return_done')) {
-    pushQueue(c, 'rel_disciple_return', c.age + 2)
+  if (c.age >= 50 && c.flags.includes('has_student') && !c.flags.includes('disciple_return_done')) {
+    pushQueue(c, 'rel_disciple_return', c.age + 4)
   }
 
   if (c.flags.includes('enemy_due') && !c.flags.includes('enemy_echo_done')) {
@@ -52,8 +52,8 @@ export function ensureRelationCallbacks(c: Character): void {
     pushQueue(c, 'rel_master_final', c.age + 3)
   }
 
-  if (c.flags.includes('disciple_return_done') && !c.flags.includes('disciple_fate_done') && c.age >= 45) {
-    pushQueue(c, 'rel_disciple_fate', c.age + 2)
+  if (c.flags.includes('disciple_return_done') && !c.flags.includes('disciple_fate_done') && c.age >= 52) {
+    pushQueue(c, 'rel_disciple_fate', c.age + 3)
   }
 
   if (c.flags.includes('enemy_echo_done') && !c.flags.includes('enemy_last_done')) {

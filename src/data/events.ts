@@ -4,6 +4,7 @@ import { PHASE3_EVENTS } from './phase3Events'
 import { PHASE4_STORY_EVENTS } from './phase4StoryEvents'
 import { PHASE7_EVENTS } from './phase7Events'
 import { PHASE8_EVENTS } from './phase8Events'
+import { PHASE10_EVENTS } from './phase10Events'
 import { TRAIT_DRIVE_EVENTS } from './traitDriveEvents'
 
 /**
@@ -2041,7 +2042,6 @@ const CORE_EVENTS: EventDef[] = [
           attrs: { 魅力: 4, 正道声望: 4 },
           addFlag: 'has_student',
           setRelation: { kind: '徒弟', bond: 55 },
-          queueEvent: { id: 'mid_betray', delayYears: 6 },
         },
         tendencyTags: ['交际', '侠义'],
       },
@@ -3249,4 +3249,5 @@ export const EVENTS: EventDef[] = [
   ...TRAIT_DRIVE_EVENTS,
   ...PHASE7_EVENTS,
   ...PHASE8_EVENTS,
+  ...PHASE10_EVENTS,
 ]

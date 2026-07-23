@@ -3,8 +3,21 @@ import { TITLES } from '../data/titles'
 import type { Character, EndingReport } from '../types'
 import { heartTier } from './utils'
 import { SECT_FINALE_DONE_FLAGS } from './sectPath'
+import { civicMainlineLabel, getCivicPath, hasMajorFaction } from './civicPath'
 
-export type MainlineId = '门派' | '魔教' | '匪患' | '情缘' | '正道' | '散修' | '未明'
+export type MainlineId =
+  | '门派'
+  | '魔教'
+  | '匪患'
+  | '情缘'
+  | '正道'
+  | '散修'
+  | '士途'
+  | '农桑'
+  | '市井'
+  | '商途'
+  | '江湖客'
+  | '未明'
 
 function hasSectFinale(c: Character): boolean {
   return SECT_FINALE_DONE_FLAGS.some((f) => c.flags.includes(f)) || c.flags.includes('sect_finale')
@@ -34,6 +47,11 @@ export function detectMainline(c: Character): MainlineId {
     情缘: 0,
     正道: 0,
     散修: 0,
+    士途: 0,
+    农桑: 0,
+    市井: 0,
+    商途: 0,
+    江湖客: 0,
     未明: 0,
   }
 
@@ -90,14 +108,43 @@ export function detectMainline(c: Character): MainlineId {
 
   if (c.flags.includes('married')) scores.情缘 += 40
   if (c.flags.includes('lover') || c.flags.includes('lost_lover')) scores.情缘 += 25
+  // 未收束情缘终章时，凡人局不过度被情缘抢走主线标签
+  if (!c.flags.includes('love_finale') && getCivicPath(c) && !hasMajorFaction(c)) {
+    scores.情缘 = Math.min(scores.情缘, 55)
+  }
 
   if (c.flags.includes('left_sect') || c.flags.includes('wanderer')) {
     if (!inActiveSect(c)) scores.散修 += 35
   }
   if (c.flags.includes('retreated') || c.flags.includes('cliff_sword')) scores.散修 += 20
 
-  // 在籍时压散修
-  if (inActiveSect(c)) scores.散修 = 0
+  // —— 凡尘主弧（未入名门主族时抬升） ——
+  const civic = getCivicPath(c)
+  if (civic && !hasMajorFaction(c)) {
+    const label = civicMainlineLabel(civic)
+    const finale = c.flags.includes(`civic_${civic}_finale`)
+    scores[label] += finale ? 115 : 78
+    if (c.flags.includes(`${civic}_mid_done`)) scores[label] += 20
+    if (c.flags.includes(`${civic}_form_done`)) scores[label] += 12
+    // 有凡尘归宿时，软情缘不得压过本业传
+    if (finale) {
+      scores.情缘 = Math.min(scores.情缘, scores[label] - 10)
+      scores.散修 = Math.min(scores.散修, scores[label] - 10)
+    }
+  } else if (civic && hasMajorFaction(c)) {
+    // 前半生凡尘：弱记一笔，不压主族
+    scores[civicMainlineLabel(civic)] += 20
+  }
+
+  // 在籍时压散修与凡尘
+  if (inActiveSect(c)) {
+    scores.散修 = 0
+    scores.士途 = Math.min(scores.士途, 25)
+    scores.农桑 = Math.min(scores.农桑, 25)
+    scores.市井 = Math.min(scores.市井, 25)
+    scores.商途 = Math.min(scores.商途, 25)
+    scores.江湖客 = Math.min(scores.江湖客, 25)
+  }
 
   let best: MainlineId = '未明'
   let bestScore = 0

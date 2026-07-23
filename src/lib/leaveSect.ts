@@ -95,6 +95,24 @@ export function primaryChainFamily(c: Character): string | null {
   if (countSectFinaleDone(c) > 0 || c.flags.includes('sect_finale')) return 'sect'
   if (getActiveSect(c)) return 'sect'
   if (c.flags.includes('demon_sect') || c.flags.includes('demon_loyal')) return 'demon'
+  if (
+    c.flags.some((f) =>
+      [
+        'civic_shi_finale',
+        'civic_nong_finale',
+        'civic_gong_finale',
+        'civic_shang_finale',
+        'civic_wanderer_finale',
+        'civic_shi',
+        'civic_nong',
+        'civic_gong',
+        'civic_shang',
+        'civic_wanderer',
+      ].includes(f),
+    )
+  ) {
+    return 'civic'
+  }
   if (c.flags.includes('lover') || c.flags.includes('married')) return 'love'
   if (c.flags.includes('helped_people') || c.flags.includes('pomo_path')) return 'justice'
   if (c.flags.includes('bandit_camp') || c.flags.includes('massacre')) return 'bandit'

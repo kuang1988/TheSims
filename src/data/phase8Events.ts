@@ -98,7 +98,7 @@ export const PHASE8_EVENTS: EventDef[] = [
         text: '开馆授徒，了此一生',
         effects: {
           attrs: { 魅力: 4, 正道声望: 5 },
-          addFlags: ['act2_late_done', 'has_student', 'zuohua_ready'],
+          addFlags: ['act2_late_done', 'has_student'],
           setRelation: { kind: '徒弟', bond: 70, note: '晚岁传灯' },
           grantTitle: 'xiake',
           logExtra: '你开了馆。江湖少了一柄刀，多了一盏灯。',
@@ -109,7 +109,7 @@ export const PHASE8_EVENTS: EventDef[] = [
         text: '入山隐居，不问世事',
         effects: {
           attrs: { 心性: 6, 体魄: -3 },
-          addFlags: ['act2_late_done', 'retreated', 'yinshi_path', 'zuohua_ready'],
+          addFlags: ['act2_late_done', 'retreated', 'yinshi_path'],
           logExtra: '你入了山。世上的名声，留给别人去争。',
         },
         tendencyTags: ['谨慎', '修炼'],
@@ -250,7 +250,11 @@ export const PHASE8_EVENTS: EventDef[] = [
               setRelation: { kind: '仇敌', clear: true },
               logExtra: '你赢了。师徒二字，从此是血。',
             },
-            onLose: { death: '被徒弟背叛而死' },
+            onLose: {
+              attrs: { 体魄: -25 },
+              addFlags: ['old_ailing'],
+              logExtra: '你败了，却没死在逆徒刀下——命是捡回来的。',
+            },
           },
         },
         tendencyTags: ['狠厉', '冒险'],
