@@ -79,6 +79,17 @@ export function hasBattlefieldContext(c: Character): boolean {
   )
 }
 
+export function hasLoveDeathContext(c: Character): boolean {
+  // 已主动关闭情缘（烧信/好散/拒死）后，不允许再走情劫自尽
+  if (c.flags.includes('love_closed') && !c.relations.some((r) => r.kind === '道侣' && r.bond >= 40)) {
+    return false
+  }
+  if (c.flags.includes('lost_lover')) return true
+  if (c.relations.some((r) => r.kind === '道侣')) return true
+  if (c.flags.includes('married') && c.flags.includes('lover')) return true
+  return false
+}
+
 export function hasStudentContext(c: Character): boolean {
   return c.flags.includes('has_student') || c.flags.includes('hunted_student')
 }
@@ -104,7 +115,7 @@ export function flavorCivicDeath(c: Character): string | null {
   }
 
   if (c.flags.includes('civic_shi_finale') || c.flags.includes('retired_official')) {
-    return '致仕归乡，无疾而终'
+    return c.age >= 50 ? '致仕归乡，无疾而终' : '寿元耗尽，寿终正寝'
   }
   if (c.flags.includes('civic_nong_finale')) {
     return c.flags.includes('old_ailing') || c.age >= 70 ? '沉疴不起，病榻而终' : '劳伤入骨，田埂而终'
@@ -152,7 +163,10 @@ export function civicArcDeathMatch(deathReason: string, c: Character): boolean |
  * 体魄归零时，按身份/烙印给出可晒死法。
  */
 export function flavorBodyDeath(c: Character): string {
-  if (c.flags.includes('enemy_due') || c.relations.some((r) => r.kind === '仇敌' && (r.revengeIn ?? 1) <= 0)) {
+  if (c.relations.some((r) => r.kind === '仇敌' && (r.revengeIn ?? 1) <= 0)) {
+    return '仇敌寻仇，命丧黄泉'
+  }
+  if (c.flags.includes('enemy_due') && c.relations.some((r) => r.kind === '仇敌')) {
     return '仇敌寻仇，命丧黄泉'
   }
   if (c.flags.includes('qi_deviation')) {
@@ -171,9 +185,10 @@ export function flavorBodyDeath(c: Character): string {
     return '毒发身亡'
   }
   if (c.flags.includes('old_ailing') || (c.flags.includes('chronic_illness') && c.age >= 55)) {
+    if (c.age >= 50) return flavorLifespanDeath(c)
     return '沉疴不起，病榻而终'
   }
-  if (c.flags.includes('lost_lover') && c.attrs.心性 <= -20) {
+  if (c.flags.includes('lost_lover') && c.attrs.心性 <= -20 && hasLoveDeathContext(c)) {
     return '情劫难渡，自绝于世'
   }
   // 战死：必须有战场语境且未过晚
@@ -188,7 +203,7 @@ export function flavorBodyDeath(c: Character): string {
     return '被徒弟背叛而死'
   }
   if (c.age >= 58 && !hasViolentDeathContext(c)) {
-    return '沉疴不起，病榻而终'
+    return flavorLifespanDeath(c)
   }
   if (c.flags.includes('official') || c.flags.includes('fugitive')) {
     if (c.age >= 60 && !hasViolentDeathContext(c)) return '沉疴不起，病榻而终'
@@ -198,14 +213,14 @@ export function flavorBodyDeath(c: Character): string {
 }
 
 export function flavorLifespanDeath(c: Character): string {
-  if (c.flags.includes('yinshi_path') || c.flags.includes('zuohua_ready')) {
+  if (c.flags.includes('yinshi_path')) {
     return '山中坐化，无疾而终'
   }
-  if (c.flags.includes('wudang_hermit')) {
+  if (c.flags.includes('wudang_hermit') && c.flags.includes('zuohua_ready')) {
     return '山中坐化，无疾而终'
   }
   if (c.flags.includes('civic_shi_finale') || c.flags.includes('retired_official')) {
-    return '致仕归乡，无疾而终'
+    return c.age >= 50 ? '致仕归乡，无疾而终' : '寿元耗尽，寿终正寝'
   }
   if (c.flags.includes('civic_nong_finale')) {
     return '劳伤入骨，田埂而终'
@@ -219,11 +234,8 @@ export function flavorLifespanDeath(c: Character): string {
   ) {
     return '恶名缠身，狱中而终'
   }
-  if (c.realm === '宗师' || c.realm === '大宗师' || c.titles.some((t) => t.id === 'zongshi' || t.id === 'mengzhu')) {
+  if (c.realm === '大宗师' || c.titles.some((t) => t.id === 'zongshi' || t.id === 'mengzhu')) {
     return '一代宗师，无疾而终'
-  }
-  if (c.flags.includes('old_ailing') || c.age >= 70) {
-    return '沉疴不起，病榻而终'
   }
   return '寿元耗尽，寿终正寝'
 }
@@ -278,7 +290,7 @@ export function enrichEndingTags(deathReason: string, c: Character, base: string
 export function deathIdentityMismatch(deathReason: string, c: Character): string {
   const tag = primaryDeathTag(deathReason, c)
 
-  if (tag === '朝廷赐死' && !c.flags.some((f) => ['official', 'fugitive', 'qincha', 'death_court'].includes(f))) {
+  if (tag === '朝廷赐死' && !c.flags.some((f) => ['official', 'fugitive', 'qincha'].includes(f))) {
     return '赐死但无朝堂烙印'
   }
   if (tag === '门派殉道' && c.flags.includes('left_sect') && !c.flags.includes('sect_martyr')) {
@@ -296,8 +308,8 @@ export function deathIdentityMismatch(deathReason: string, c: Character): string
   if (tag === '战死沙场' && !hasBattlefieldContext(c)) {
     return '战死缺战场烙印'
   }
-  if (tag === '情劫自尽' && !c.flags.includes('lost_lover') && !c.flags.includes('death_qingjie')) {
-    return '情劫死无情缘烙印'
+  if (tag === '情劫自尽' && !hasLoveDeathContext(c)) {
+    return '情劫死无情缘铺垫'
   }
   return ''
 }
@@ -320,14 +332,44 @@ export function sanitizeDeathReason(c: Character, reason: string): string {
   if (/背叛/.test(r) && !hasStudentContext(c)) {
     r = flavorCivicDeath(c) ?? (c.age >= 55 ? '沉疴不起，病榻而终' : '体魄崩解，伤重不治')
   }
+  if (/情劫|自绝/.test(r) && !hasLoveDeathContext(c)) {
+    r =
+      flavorCivicDeath(c) ??
+      (c.age >= 55
+        ? flavorLifespanDeath(c)
+        : '体魄崩解，伤重不治')
+  }
   if (/背叛/.test(r) && hasCivicPath(c) && c.flags.some((f) => f.endsWith('_finale')) && !c.flags.includes('hunted_student')) {
     r = flavorCivicDeath(c) ?? flavorLifespanDeath(c)
   }
   if ((/战死|血战/.test(r)) && !hasBattlefieldContext(c)) {
     r = flavorCivicDeath(c) ?? (c.age >= 55 ? flavorLifespanDeath(c) : '体魄崩解，伤重不治')
   }
-  if (/赐死/.test(r) && !c.flags.some((f) => ['official', 'fugitive', 'qincha', 'death_court'].includes(f))) {
+  // 赐死：须事前朝堂烙印；death_court 同帧自证不算
+  if (
+    /赐死/.test(r) &&
+    !c.flags.some((f) => ['official', 'fugitive', 'qincha'].includes(f))
+  ) {
     r = c.age >= 55 ? flavorLifespanDeath(c) : '遭人暗算，死于非命'
+  }
+  // 仇杀：须有仇敌关系（或仍挂 enemy_due 且有仇敌槽）
+  if (
+    /仇敌/.test(r) &&
+    !c.relations.some((rel) => rel.kind === '仇敌') &&
+    !c.flags.includes('enemy_due')
+  ) {
+    r = flavorCivicDeath(c) ?? (c.age >= 55 ? flavorLifespanDeath(c) : '体魄崩解，伤重不治')
+  }
+  // 殉道：须仍在籍（left_sect 或无门派核心旗则改写）；sect_martyr 同帧自证不算入籍
+  if (/殉道/.test(r)) {
+    const inSect =
+      !c.flags.includes('left_sect') &&
+      (['sect_huashan', 'sect_wudang', 'sect_shaolin', 'sect_emei', 'sect_gaibang', 'gaibang_member'].some((f) =>
+        c.flags.includes(f),
+      ))
+    if (!inSect) {
+      r = flavorCivicDeath(c) ?? (c.age >= 55 ? flavorLifespanDeath(c) : '体魄崩解，伤重不治')
+    }
   }
   // 凡尘归宿后：死因必须落在本业允许表
   if (civicArcDeathMatch(r, c) === false) {

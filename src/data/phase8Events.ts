@@ -130,7 +130,7 @@ export const PHASE8_EVENTS: EventDef[] = [
   {
     id: 'rel_lover_fate',
     name: '情缘终局',
-    text: '与故人再见之后，尘埃仍未落定。今日对坐，要的是一个了断：同生、永别，或是把债留到黄泉。',
+    text: '与道侣再见之后，尘埃仍未落定。今日对坐，要的是一个了断：同生、永别，或是把未了的债说清——不是把命赌在酒里。',
     stages: ['壮年', '晚年'],
     tags: ['情缘', '关系'],
     chain: 'love',
@@ -140,7 +140,8 @@ export const PHASE8_EVENTS: EventDef[] = [
     once: true,
     conditions: {
       flags: ['lover_revisited'],
-      forbidFlags: ['lover_fate_done', 'love_finale'],
+      forbidFlags: ['lover_fate_done', 'love_finale', 'love_closed'],
+      anyFlags: ['lover', 'married'],
     },
     choices: [
       {
@@ -157,7 +158,7 @@ export const PHASE8_EVENTS: EventDef[] = [
         text: '好聚好散',
         effects: {
           attrs: { 心性: 3 },
-          addFlags: ['lover_fate_done', 'lost_lover'],
+          addFlags: ['lover_fate_done', 'lost_lover', 'love_closed'],
           setRelation: { kind: '道侣', bond: 20, note: '释然' },
           logExtra: '你们散了，却没有恨。',
         },
@@ -166,10 +167,13 @@ export const PHASE8_EVENTS: EventDef[] = [
       {
         text: '情劫难渡，一醉永别',
         effects: {
-          addFlags: ['lover_fate_done', 'death_qingjie'],
+          addFlags: ['lover_fate_done', 'death_qingjie', 'lost_lover'],
           death: '情劫难渡，自绝于世',
+          logExtra: '酒入喉时，你仍念着那个人的名字。',
         },
-        tendencyTags: ['谨慎'],
+        // 仅心碎时可选；倾向刻意避开「谨慎」，避免全自动掌门误点自尽
+        tendencyTags: ['狠厉'],
+        requirements: { maxHeart: -15, anyFlags: ['lost_lover'] },
       },
     ],
   },
@@ -224,7 +228,8 @@ export const PHASE8_EVENTS: EventDef[] = [
     minAge: 45,
     conditions: {
       flags: ['disciple_return_done'],
-      forbidFlags: ['disciple_fate_done'],
+      forbidFlags: ['disciple_fate_done', 'betrayal_resolved'],
+      anyFlags: ['has_student'],
     },
     choices: [
       {
@@ -273,7 +278,7 @@ export const PHASE8_EVENTS: EventDef[] = [
     once: true,
     conditions: {
       flags: ['enemy_echo_done'],
-      forbidFlags: ['enemy_last_done'],
+      forbidFlags: ['enemy_last_done', 'enemy_closed'],
     },
     choices: [
       {

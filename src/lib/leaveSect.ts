@@ -95,6 +95,7 @@ export function primaryChainFamily(c: Character): string | null {
   if (countSectFinaleDone(c) > 0 || c.flags.includes('sect_finale')) return 'sect'
   if (getActiveSect(c)) return 'sect'
   if (c.flags.includes('demon_sect') || c.flags.includes('demon_loyal')) return 'demon'
+  // 凡尘归宿/成型后优先于软情缘；仅有意向时不抢情缘主族
   if (
     c.flags.some((f) =>
       [
@@ -103,19 +104,30 @@ export function primaryChainFamily(c: Character): string | null {
         'civic_gong_finale',
         'civic_shang_finale',
         'civic_wanderer_finale',
-        'civic_shi',
-        'civic_nong',
-        'civic_gong',
-        'civic_shang',
-        'civic_wanderer',
       ].includes(f),
     )
+  ) {
+    return 'civic'
+  }
+  if (
+    c.flags.some((f) =>
+      ['shi_form_done', 'nong_form_done', 'gong_form_done', 'shang_form_done', 'wanderer_form_done'].includes(f),
+    ) &&
+    !c.flags.includes('lover') &&
+    !c.flags.includes('married')
   ) {
     return 'civic'
   }
   if (c.flags.includes('lover') || c.flags.includes('married')) return 'love'
   if (c.flags.includes('helped_people') || c.flags.includes('pomo_path')) return 'justice'
   if (c.flags.includes('bandit_camp') || c.flags.includes('massacre')) return 'bandit'
+  if (
+    c.flags.some((f) =>
+      ['civic_shi', 'civic_nong', 'civic_gong', 'civic_shang', 'civic_wanderer'].includes(f),
+    )
+  ) {
+    return 'civic'
+  }
   return null
 }
 
@@ -130,7 +142,11 @@ export function activeChainFamilyCount(c: Character): number {
   )
     n += 1
   if (c.flags.includes('bandit_finale') || c.flags.includes('became_bandit')) n += 1
-  if (c.flags.includes('love_finale') || (c.flags.includes('married') && c.flags.includes('lover')))
+  // 在籍时情缘收束不计入族峰值，避免「掌门+道侣」虚高
+  if (
+    (c.flags.includes('love_finale') || (c.flags.includes('married') && c.flags.includes('lover'))) &&
+    !getActiveSect(c)
+  )
     n += 1
   if (c.flags.includes('justice_finale') || c.flags.includes('alliance_leader')) n += 1
   return n

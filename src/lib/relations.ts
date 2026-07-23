@@ -58,9 +58,16 @@ export function upsertRelation(
 
   if (c.relations.length >= 5) {
     const weak = [...c.relations]
-      .filter((r) => r.kind !== '仇敌')
+      .filter((r) => r.kind !== '仇敌' && r.kind !== '道侣' && r.kind !== '师父')
       .sort((a, b) => a.bond - b.bond)[0]
     if (weak) c.relations = c.relations.filter((r) => r !== weak)
+    else {
+      // 槽满且皆为关键人事：挤掉羁绊最低的非仇敌
+      const fallback = [...c.relations]
+        .filter((r) => r.kind !== '仇敌')
+        .sort((a, b) => a.bond - b.bond)[0]
+      if (fallback) c.relations = c.relations.filter((r) => r !== fallback)
+    }
   }
   c.relations.push(slot)
   if (slot.kind === '仇敌' && slot.revengeIn != null) {

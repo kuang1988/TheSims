@@ -7,6 +7,7 @@ import { TRAITS } from '../data/traits'
 import { matchSynergies } from '../data/synergies'
 import {
   applyEffects,
+  autoPickChoice,
   buildEnding,
   calcForce,
   createBirth,
@@ -17,9 +18,11 @@ import { endingMoralTags } from '../lib/alignment'
 import { countSectFinaleDone, hasZombieSectFlags } from '../lib/leaveSect'
 import { resolveCombat } from '../lib/combat'
 import { tickEnemyCountdowns, upsertRelation } from '../lib/relations'
+import { ensureRelationCallbacks } from '../lib/relationPath'
+import { sanitizeDeathReason } from '../lib/deathTags'
 import { ACHIEVEMENTS, syncCodexFromEnding } from '../lib/meta'
 import { detectMainline } from '../lib/story'
-import { heartTier } from '../lib/utils'
+import { createRng, heartTier } from '../lib/utils'
 
 describe('heartTier', () => {
   it('maps numeric heart to tiers', () => {
@@ -632,6 +635,59 @@ describe('§4.1 story coherence', () => {
     const c = createBirth(9)
     c.flags.push('sect_wudang', 'sect_outer', 'wanderer', 'sect_loyal')
     expect(detectMainline(c)).toBe('门派')
+  })
+
+  it('烧信后不再排队情缘终局，且无道侣时情劫死会被改写', () => {
+    const c = createBirth(88)
+    c.age = 30
+    c.flags.push('lover', 'lover_revisited', 'lost_lover', 'love_closed', 'lover_fate_done')
+    ensureRelationCallbacks(c)
+    expect(c.eventQueue.some((q) => q.eventId === 'rel_lover_fate')).toBe(false)
+
+    const rewritten = sanitizeDeathReason(c, '情劫难渡，自绝于世')
+    expect(rewritten.includes('情劫') || rewritten.includes('自绝')).toBe(false)
+  })
+
+  it('赴约重逢后情缘终局自尽选项对正常心性不可用', () => {
+    const c = createBirth(89)
+    c.age = 33
+    c.attrs.心性 = 20
+    c.flags.push('lover_revisited', 'lover', 'sect_wudang', 'sect_leader')
+    upsertRelation(c, { kind: '道侣', name: '苏晚晴', bond: 70 }, () => 0.5)
+    const ev = EVENTS.find((e) => e.id === 'rel_lover_fate')!
+    const suicide = ev.choices.find((ch) => ch.effects.death?.includes('情劫'))!
+    const picks = new Set<string>()
+    for (let i = 0; i < 40; i++) {
+      const ch = autoPickChoice(c, ev.choices, createRng(1000 + i))
+      picks.add(ch.text)
+    }
+    expect(picks.has(suicide.text)).toBe(false)
+    expect([...picks].some((t) => t.includes('执手') || t.includes('好聚'))).toBe(true)
+  })
+
+  it('仇敌拍1获胜后不再排队仇敌终局', () => {
+    const c = createBirth(91)
+    c.age = 40
+    c.flags.push('enemy_echo_done', 'enemy_last_done', 'enemy_closed')
+    ensureRelationCallbacks(c)
+    expect(c.eventQueue.some((q) => q.eventId === 'rel_enemy_last')).toBe(false)
+  })
+
+  it('无仇敌关系的寻仇死因会被改写', () => {
+    const c = createBirth(92)
+    c.age = 45
+    c.flags = c.flags.filter((f) => f !== 'enemy_due')
+    c.relations = []
+    const rewritten = sanitizeDeathReason(c, '仇敌寻仇，命丧黄泉')
+    expect(rewritten.includes('仇敌')).toBe(false)
+  })
+
+  it('背叛已了结后不再排队徒儿去路', () => {
+    const c = createBirth(93)
+    c.age = 55
+    c.flags.push('disciple_return_done', 'betrayal_resolved', 'has_student')
+    ensureRelationCallbacks(c)
+    expect(c.eventQueue.some((q) => q.eventId === 'rel_disciple_fate')).toBe(false)
   })
 })
 

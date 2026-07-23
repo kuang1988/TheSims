@@ -365,6 +365,19 @@ export function applyEffects(
   }
 
   if (effects.death) {
+    // 同帧自证旗先剥离再校验，避免 death_court/sect_martyr 等让 sanitize 失效
+    const selfProof = new Set([
+      'death_court',
+      'sect_martyr',
+      'death_qingjie',
+      'death_poison',
+      'qi_deviation',
+      'sect_martyr_done',
+      'death_court_done',
+    ])
+    const stripped = toAdd.filter((f) => selfProof.has(f))
+    if (stripped.length) c.flags = c.flags.filter((f) => !stripped.includes(f))
+
     const raw = effects.death
     if (trySparePrematureDeath(c, raw)) {
       logs.push({
@@ -374,8 +387,14 @@ export function applyEffects(
         text: `你本将「${raw}」，却被人从鬼门关拖了回来。余生，或许要换一种死法。`,
         importance: 5,
       })
+      for (const f of stripped) {
+        if (!c.flags.includes(f)) c.flags.push(f)
+      }
     } else {
       const rewritten = rewriteLateDeath(c, raw)
+      for (const f of stripped) {
+        if (!c.flags.includes(f)) c.flags.push(f)
+      }
       logs.push({
         age,
         kind: 'death',
@@ -667,7 +686,7 @@ export function eventWeight(c: Character, e: EventDef): number {
   }
 
   if (e.chain === 'civic') {
-    if (hasMajorFaction(c)) w *= 0.12
+    if (hasMajorFaction(c)) w *= 0
     else if (getCivicPath(c)) w *= 1.85
   }
 
@@ -790,6 +809,42 @@ export function autoPickChoice(c: Character, choices: ChoiceDef[], rng: () => nu
     if (!demonAligned && goingDemon) s -= 4
     if (refusedDemon && goingDemon) s -= 6
     if (c.flags.includes('sect_leave_pending') && staying) s += 2
+
+    // 自尽/横死抉择：按死因分型校验，避免「有仇却去饮鸩」或无铺垫自尽
+    if (fx.death) {
+      const d = fx.death
+      const loveSuicide = /情劫|自绝/.test(d)
+      const courtDeath = /赐死/.test(d)
+      const poisonDeath = /毒/.test(d)
+      const betrayDeath = /背叛/.test(d)
+      const enemyDeath = /仇敌/.test(d)
+      const martyrDeath = /殉道/.test(d)
+      const peacefulDeath = /坐化|寿终|无疾/.test(d)
+
+      if (loveSuicide) {
+        const ok = c.flags.includes('lost_lover') && c.attrs.心性 <= -10 && !c.flags.includes('love_closed')
+        s += ok ? -2 : -12
+      } else if (courtDeath) {
+        const ok = c.flags.includes('official') || c.flags.includes('fugitive')
+        s += ok ? -3 : -12
+      } else if (poisonDeath) {
+        const ok =
+          c.flags.includes('poisoned') ||
+          c.flags.includes('emei_poison_kept') ||
+          c.flags.includes('duyi_path')
+        s += ok ? -3 : -10
+      } else if (betrayDeath) {
+        s += c.flags.includes('hunted_student') ? -2 : -12
+      } else if (enemyDeath) {
+        s += c.relations.some((r) => r.kind === '仇敌') || c.flags.includes('enemy_due') ? -2 : -12
+      } else if (martyrDeath) {
+        s += inSect && !c.flags.includes('sect_leave_pending') ? -4 : -12
+      } else if (peacefulDeath && c.age >= 70) {
+        s += 0
+      } else {
+        s -= 8
+      }
+    }
 
     return s + rng() * 0.3
   }

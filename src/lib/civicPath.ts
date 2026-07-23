@@ -182,14 +182,19 @@ export function ensureCivicStoryQueue(c: Character): void {
   }
   if (
     c.age >= conf.lateAge &&
-    (c.flags.includes(`${path}_mid_done`) || c.flags.includes(`${path}_form_done`)) &&
+    c.flags.includes(`${path}_form_done`) &&
     !c.flags.includes(conf.finale) &&
     !hasPlayedOrQueued(c, conf.lateId)
   ) {
     pushQueue(c, conf.lateId, conf.lateAge)
   }
-  // 极晚仍未归宿：强制排队并略提前
-  if (c.age >= conf.lateAge + 3 && !c.flags.includes(conf.finale) && !hasPlayedOrQueued(c, conf.lateId)) {
+  // 极晚仍未归宿：至少成型后才强制归宿，禁止空跳终章
+  if (
+    c.age >= conf.lateAge + 3 &&
+    c.flags.includes(`${path}_form_done`) &&
+    !c.flags.includes(conf.finale) &&
+    !hasPlayedOrQueued(c, conf.lateId)
+  ) {
     pushQueue(c, conf.lateId, c.age)
   }
   // 中年已成型却迟迟未中劫：催一下

@@ -241,8 +241,8 @@ export function ensureSectAftermath(c: Character): void {
   const hasFinale =
     c.flags.includes('sect_finale') ||
     SECT_FINALE_DONE_FLAGS.some((f) => c.flags.includes(f))
-  const canMid =
-    hasFinale || c.flags.includes('left_sect') || c.flags.includes('wanderer')
+  // 仅终章后或真正离派才排余波；裸 wanderer 不灌山门中场
+  const canMid = hasFinale || c.flags.includes('left_sect')
 
   // 第一拍：经典余波（有终章时）
   if (hasFinale && !c.flags.includes('sect_aftermath_queued')) {
@@ -264,6 +264,18 @@ export function ensureSectAftermath(c: Character): void {
       pushQueue(c, 'act2_wander_mid', c.age + 2)
     }
     c.flags.push('act2_mid_queued')
+  }
+
+  // 终章后离派：若山门余波未播，改排浪迹中场
+  if (
+    hasFinale &&
+    c.flags.includes('left_sect') &&
+    c.flags.includes('act2_mid_queued') &&
+    !c.flags.includes('act2_mid_done') &&
+    !c.eventQueue.some((q) => q.eventId === 'act2_wander_mid')
+  ) {
+    c.eventQueue = c.eventQueue.filter((q) => q.eventId !== 'act2_sect_echo')
+    pushQueue(c, 'act2_wander_mid', c.age + 1)
   }
 
   // 晚年归宿：所有人可触达

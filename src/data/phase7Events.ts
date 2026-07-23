@@ -9,22 +9,26 @@ export const PHASE7_EVENTS: EventDef[] = [
     text: '一道密旨到了你面前：或是赐死自尽，或是押赴刑场。朝堂上已无人替你说话。',
     stages: ['壮年', '晚年'],
     tags: ['朝廷', '结局'],
-    weight: 2,
+    weight: 1,
     importance: 5,
     needsChoice: true,
     once: true,
-    conditions: { anyFlags: ['official', 'fugitive', 'qincha'], forbidFlags: ['left_court_safe'] },
+    minAge: 40,
+    conditions: {
+      anyFlags: ['official', 'fugitive'],
+      forbidFlags: ['left_court_safe', 'retired_official', 'civic_shi_finale', 'death_court_done'],
+    },
     choices: [
       {
         text: '饮鸩遵旨',
-        effects: { death: '朝廷赐死', addFlag: 'death_court' },
-        tendencyTags: ['谨慎'],
+        effects: { death: '朝廷赐死', addFlags: ['death_court', 'death_court_done'] },
+        tendencyTags: ['狠厉'],
       },
       {
         text: '抗旨出逃',
         effects: {
           attrs: { 体魄: -15, 心性: -5 },
-          addFlags: ['fugitive', 'left_court_safe'],
+          addFlags: ['fugitive', 'left_court_safe', 'death_court_done'],
           queueEvent: { id: 'wanderer_bounty_board', delayYears: 2 },
         },
         tendencyTags: ['冒险', '狠厉'],
@@ -43,19 +47,20 @@ export const PHASE7_EVENTS: EventDef[] = [
     needsChoice: true,
     once: true,
     minAge: 35,
-    conditions: { flags: ['lost_lover'], forbidFlags: ['love_finale', 'refused_qingjie'] },
+    conditions: { flags: ['lost_lover'], forbidFlags: ['love_finale', 'refused_qingjie', 'love_closed', 'lover_fate_done'] },
     choices: [
       {
         text: '一醉不醒',
-        effects: { death: '情劫难渡，自绝于世', addFlag: 'death_qingjie' },
-        tendencyTags: ['谨慎'],
+        effects: { death: '情劫难渡，自绝于世', addFlags: ['death_qingjie', 'lost_lover'] },
+        tendencyTags: ['狠厉'],
+        requirements: { maxHeart: -10 },
       },
       {
         text: '咬牙活下去',
         effects: {
           attrs: { 心性: 8, 体魄: -4 },
-          addFlag: 'refused_qingjie',
-          queueEvent: { id: 'rel_lover_revisit', delayYears: 1 },
+          addFlags: ['refused_qingjie', 'love_closed'],
+          logExtra: '你把酒泼了。命还在，故事还能改。',
         },
         tendencyTags: ['侠义', '修炼'],
       },
@@ -137,14 +142,24 @@ export const PHASE7_EVENTS: EventDef[] = [
     minAge: 48,
     conditions: {
       anyFlags: ['sect_huashan', 'sect_wudang', 'sect_shaolin', 'sect_emei', 'sect_gaibang'],
-      // 终章前不抢戏；离派后不再殉门
-      forbidFlags: ['left_sect', 'sect_martyr_done', 'sect_finale'],
+      // 终章前/离派协议中不抢戏；已终章也不再殉（留给余波）
+      forbidFlags: [
+        'left_sect',
+        'sect_martyr_done',
+        'sect_finale',
+        'sect_leave_pending',
+        'huashan_finale_done',
+        'wudang_finale_done',
+        'shaolin_finale_done',
+        'emei_finale_done',
+        'gaibang_finale_done',
+      ],
     },
     choices: [
       {
         text: '断后殉门',
         effects: { death: '门派殉道，血染山门', addFlags: ['sect_martyr', 'sect_martyr_done'] },
-        tendencyTags: ['侠义'],
+        tendencyTags: ['侠义', '狠厉'],
       },
       {
         text: '护着伤者突围',
@@ -186,7 +201,7 @@ export const PHASE7_EVENTS: EventDef[] = [
       {
         text: '认命闭眼',
         effects: { death: '毒发身亡', addFlag: 'death_poison' },
-        tendencyTags: ['谨慎'],
+        tendencyTags: ['狠厉'],
       },
       {
         text: '以毒攻毒拼一把',
@@ -214,19 +229,23 @@ export const PHASE7_EVENTS: EventDef[] = [
     importance: 5,
     needsChoice: true,
     once: true,
-    conditions: { flags: ['hunted_student'], forbidFlags: ['betrayal_resolved'] },
+    conditions: { flags: ['hunted_student'], forbidFlags: ['betrayal_resolved', 'disciple_fate_done'] },
     choices: [
       {
         text: '不还手',
-        effects: { death: '被徒弟背叛而死', addFlag: 'betrayal_resolved' },
+        effects: {
+          death: '被徒弟背叛而死',
+          addFlags: ['betrayal_resolved', 'disciple_fate_done'],
+        },
         tendencyTags: ['侠义', '谨慎'],
       },
       {
         text: '亲手了结这段师徒',
         effects: {
           attrs: { 心性: -12, 体魄: -8 },
-          addFlag: 'betrayal_resolved',
+          addFlags: ['betrayal_resolved', 'disciple_fate_done'],
           setRelation: { kind: '徒弟', clear: true },
+          removeFlag: 'has_student',
           grantTitle: 'eguiman',
         },
         tendencyTags: ['狠厉'],
@@ -255,9 +274,8 @@ export const PHASE7_EVENTS: EventDef[] = [
         text: '赴约',
         effects: {
           attrs: { 心性: 5, 魅力: 3 },
-          addFlag: 'lover_revisited',
+          addFlags: ['lover_revisited', 'lover'],
           setRelation: { kind: '道侣', bond: 70, note: '故地重逢' },
-          queueEvent: { id: 'love_finale', delayYears: 3 },
           logExtra: '你赴约见到了故人，往事如潮。',
         },
         tendencyTags: ['交际', '侠义'],
@@ -266,9 +284,10 @@ export const PHASE7_EVENTS: EventDef[] = [
         text: '烧了信，不再见',
         effects: {
           attrs: { 心性: -3 },
-          addFlags: ['lover_revisited', 'lost_lover'],
+          addFlags: ['lover_revisited', 'lost_lover', 'love_closed', 'lover_fate_done'],
+          removeFlags: ['lover', 'married'],
           setRelation: { kind: '道侣', clear: true },
-          logExtra: '你把信烧了。有些人，只配活在记忆里。',
+          logExtra: '你把信烧了。有些人，只配活在记忆里——故事到此为止。',
         },
         tendencyTags: ['谨慎'],
       },
@@ -372,6 +391,7 @@ export const PHASE7_EVENTS: EventDef[] = [
               attrs: { 武力: 6, 正道声望: 4 },
               setRelation: { kind: '仇敌', clear: true },
               removeFlag: 'enemy_due',
+              addFlags: ['enemy_last_done', 'enemy_closed'],
               logExtra: '旧仇已了。你却不觉得轻松。',
             },
             onLose: { death: '仇敌寻仇，命丧黄泉' },
