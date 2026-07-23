@@ -136,7 +136,14 @@ const SECT_PROGRESS: Record<
   },
 }
 
-const AFTERMATH_EVENTS = ['old_pass_art', 'mid_closedoor', 'wanderer_road_justice'] as const
+const AFTERMATH_EVENTS = [
+  'old_pass_art',
+  'mid_closedoor',
+  'wanderer_road_justice',
+  'act2_sect_echo',
+  'act2_wander_mid',
+  'act2_late_home',
+] as const
 
 export function getActiveSect(c: Character): SectCoreFlag | null {
   if (c.flags.includes('left_sect')) return null
@@ -229,25 +236,41 @@ export function ensureSectStoryQueue(c: Character): void {
   }
 }
 
-/** 终章后保底 1～2 个余波，避免「终章当日即绝」 */
+/** 终章后第二幕：中年余波 + 晚年归宿（2～4 拍上限） */
 export function ensureSectAftermath(c: Character): void {
   const hasFinale =
     c.flags.includes('sect_finale') ||
     SECT_FINALE_DONE_FLAGS.some((f) => c.flags.includes(f))
-  if (!hasFinale) return
-  if (c.flags.includes('sect_aftermath_queued')) return
+  const canMid =
+    hasFinale || c.flags.includes('left_sect') || c.flags.includes('wanderer')
 
-  const already = AFTERMATH_EVENTS.some(
-    (id) => c.eventQueue.some((q) => q.eventId === id) || c.flags.includes(`played_${id}`),
-  )
-  if (already) {
+  // 第一拍：经典余波（有终章时）
+  if (hasFinale && !c.flags.includes('sect_aftermath_queued')) {
+    const already = ['old_pass_art', 'mid_closedoor'].some(
+      (id) => c.eventQueue.some((q) => q.eventId === id) || c.flags.includes(`played_${id}`),
+    )
+    if (!already) {
+      pushQueue(c, 'old_pass_art', c.age + 1)
+      pushQueue(c, 'mid_closedoor', c.age + 3)
+    }
     c.flags.push('sect_aftermath_queued')
-    return
   }
 
-  pushQueue(c, 'old_pass_art', c.age + 1)
-  pushQueue(c, 'mid_closedoor', c.age + 3)
-  c.flags.push('sect_aftermath_queued')
+  // 第二幕中年拍
+  if (canMid && !c.flags.includes('act2_mid_done') && !c.flags.includes('act2_mid_queued')) {
+    if (hasFinale && !c.flags.includes('left_sect')) {
+      pushQueue(c, 'act2_sect_echo', c.age + 4)
+    } else {
+      pushQueue(c, 'act2_wander_mid', c.age + 2)
+    }
+    c.flags.push('act2_mid_queued')
+  }
+
+  // 晚年归宿：所有人可触达
+  if (c.age >= 52 && !c.flags.includes('act2_late_done') && !c.flags.includes('act2_late_queued')) {
+    pushQueue(c, 'act2_late_home', Math.max(c.age + 1, 55))
+    c.flags.push('act2_late_queued')
+  }
 }
 
 /** 队列里是否还有余波未播 */

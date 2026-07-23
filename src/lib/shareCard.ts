@@ -2,6 +2,7 @@ import type { EndingReport } from '../types'
 import { heartTier } from './utils'
 import { ORIGINS } from '../data/origins'
 import { TITLES } from '../data/titles'
+import { primaryDeathTag } from './deathTags'
 
 function originName(id: string) {
   return ORIGINS.find((o) => o.id === id)?.name ?? id
@@ -23,6 +24,7 @@ export function renderShareCard(ending: EndingReport, seed?: number): HTMLCanvas
 
   const c = ending.character
   const primary = c.primaryTitleId ? titleName(c.primaryTitleId) : null
+  const deathTag = primaryDeathTag(ending.deathReason, c)
 
   const g = ctx.createLinearGradient(0, 0, w, h)
   g.addColorStop(0, '#f3ebe0')
@@ -40,43 +42,48 @@ export function renderShareCard(ending: EndingReport, seed?: number): HTMLCanvas
 
   ctx.fillStyle = '#3a2f24'
   ctx.font = '26px "ZCOOL XiaoWei", "Songti SC", "Noto Serif SC", serif'
-  ctx.fillText('武侠人生模拟器', 64, 96)
+  ctx.fillText('武侠人生模拟器', 64, 88)
 
-  ctx.font = '46px "ZCOOL XiaoWei", "Songti SC", "Noto Serif SC", serif'
+  ctx.fillStyle = '#9c2f1a'
+  ctx.font = '28px "ZCOOL XiaoWei", "Songti SC", "Noto Serif SC", serif'
+  ctx.fillText(deathTag, 64, 140)
+
+  ctx.fillStyle = '#3a2f24'
+  ctx.font = '36px "ZCOOL XiaoWei", "Songti SC", "Noto Serif SC", serif'
+  const deathLine = ending.deathReason.slice(0, 18)
+  ctx.fillText(deathLine, 64, 188)
+
+  ctx.font = '40px "ZCOOL XiaoWei", "Songti SC", "Noto Serif SC", serif'
   const nameLine = primary ? `${c.name} · ${primary}` : c.name
-  ctx.fillText(nameLine.slice(0, 14), 64, 160)
+  ctx.fillText(nameLine.slice(0, 14), 64, 250)
 
   ctx.font = '22px "Source Han Serif SC", "Songti SC", "Noto Serif SC", serif'
   ctx.fillStyle = '#5c4e3f'
-  ctx.fillText(`主线「${ending.mainline}」`, 64, 210)
+  ctx.fillText(`主线「${ending.mainline}」`, 64, 300)
   ctx.fillText(
     `出身${originName(c.originId)} · 【${c.realm}】 · ${ending.finalAge}岁`,
     64,
-    248,
+    338,
   )
-  ctx.fillText(
-    `心性 ${heartTier(c.attrs.心性)} · 评分 ${ending.score} · 战力 ${ending.force}`,
-    64,
-    286,
-  )
+  ctx.fillText(`心性 ${heartTier(c.attrs.心性)} · 评分 ${ending.score}`, 64, 376)
   if (seed != null) {
     ctx.fillStyle = '#8a735a'
     ctx.font = '20px "Source Han Serif SC", "Songti SC", serif'
-    ctx.fillText(`种子 ${seed} · 同种不同抉择`, 64, 324)
+    ctx.fillText(`种子 ${seed} · 同种不同抉择`, 64, 414)
   }
 
   ctx.fillStyle = '#3a2f24'
-  ctx.font = '22px "Source Han Serif SC", "Songti SC", "Noto Serif SC", serif'
-  wrapText(ctx, ending.summary, 64, 370, w - 128, 32, 5)
+  ctx.font = '20px "Source Han Serif SC", "Songti SC", "Noto Serif SC", serif'
+  wrapText(ctx, ending.summary, 64, 460, w - 128, 30, 4)
 
-  const highs = ending.highlights.slice(-2)
+  const highs = ending.highlights.slice(0, 2)
   if (highs.length) {
     ctx.font = '22px "ZCOOL XiaoWei", serif'
-    ctx.fillText('高光', 64, 560)
+    ctx.fillText('高光', 64, 620)
     ctx.font = '20px "Source Han Serif SC", "Songti SC", serif'
     ctx.fillStyle = '#5c4e3f'
     highs.forEach((hLine, i) => {
-      ctx.fillText(`· ${hLine}`, 64, 600 + i * 36)
+      ctx.fillText(`· ${hLine}`, 64, 658 + i * 34)
     })
   }
 
@@ -90,12 +97,13 @@ export function renderShareCard(ending: EndingReport, seed?: number): HTMLCanvas
   if (rel) {
     ctx.fillStyle = '#5c4e3f'
     ctx.font = '18px "Source Han Serif SC", "Songti SC", serif'
-    ctx.fillText(rel, 64, 700)
+    ctx.fillText(rel, 64, 740)
   }
 
   ctx.fillStyle = '#7a6a58'
   ctx.font = '18px "Source Han Serif SC", "Songti SC", serif'
-  const tagLine = ending.endingTags.slice(0, 4).join(' · ')
+  const extraTags = ending.endingTags.filter((t) => t !== deathTag).slice(0, 2)
+  const tagLine = [deathTag, ...extraTags].join(' · ')
   ctx.fillText(`结局：${tagLine}`, 64, h - 72)
   ctx.fillText('同种子，不同抉择，亦是不同江湖。', 64, h - 44)
 

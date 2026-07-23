@@ -63,7 +63,15 @@ import {
   titleAlignment,
   titlesToStripForGrant,
 } from '../lib/alignment'
-import { enrichEndingTags, flavorBodyDeath, flavorLifespanDeath } from '../lib/deathTags'
+import {
+  enrichEndingTags,
+  flavorBodyDeath,
+  flavorLifespanDeath,
+  hasViolentDeathContext,
+  primaryDeathTag,
+  rewriteLateDeath,
+  trySparePrematureDeath,
+} from '../lib/deathTags'
 import { ensureRelationCallbacks } from '../lib/relationPath'
 import { detectMainline } from '../lib/story'
 
@@ -350,13 +358,25 @@ export function applyEffects(
   }
 
   if (effects.death) {
-    logs.push({
-      age,
-      kind: 'death',
-      title: '陨落',
-      text: effects.death,
-      importance: 5,
-    })
+    const raw = effects.death
+    if (trySparePrematureDeath(c, raw)) {
+      logs.push({
+        age,
+        kind: 'system',
+        title: '命悬一线',
+        text: `你本将「${raw}」，却被人从鬼门关拖了回来。余生，或许要换一种死法。`,
+        importance: 5,
+      })
+    } else {
+      const rewritten = rewriteLateDeath(c, raw)
+      logs.push({
+        age,
+        kind: 'death',
+        title: '陨落',
+        text: rewritten,
+        importance: 5,
+      })
+    }
   }
 
   if (toAdd.includes('saved_plague')) {
@@ -763,12 +783,27 @@ export class LifeSimulator {
   majorOnly: boolean
   ended = false
   deathReason = ''
+  /** 队列过期未竟之事（结算用） */
+  unfinishedQuests: string[] = []
 
   constructor(character: Character, seed: number, mode: PlayMode, majorOnly = false) {
     this.character = character
     this.rng = createRng(seed)
     this.mode = mode
     this.majorOnly = majorOnly
+  }
+
+  private noteUnfinishedQuest(name: string) {
+    if (!this.unfinishedQuests.includes(name)) {
+      this.unfinishedQuests.push(name)
+      this.push({
+        age: this.character.age,
+        kind: 'summary',
+        title: '未竟之事',
+        text: `机缘「${name}」终未兑现，成了这一生的遗憾。`,
+        importance: 2,
+      })
+    }
   }
 
   private push(...entries: LogEntry[]) {
@@ -778,21 +813,31 @@ export class LifeSimulator {
   private yearlyDecay() {
     const c = this.character
     const age = c.age
-    if (age >= 50) c.attrs.体魄 = clamp(c.attrs.体魄 - 1, 1, 100)
-    if (age >= 70) c.attrs.体魄 = clamp(c.attrs.体魄 - 1, 1, 100)
-    if (age >= 90) c.attrs.体魄 = clamp(c.attrs.体魄 - 2, 1, 100)
+    // 晚年允许体魄掉到 0，打开寿终/病榻通路
+    const floor = age >= 62 ? 0 : 1
+    if (age >= 50) c.attrs.体魄 = clamp(c.attrs.体魄 - 1, floor, 100)
+    if (age >= 65) c.attrs.体魄 = clamp(c.attrs.体魄 - 1, floor, 100)
+    if (age >= 75) c.attrs.体魄 = clamp(c.attrs.体魄 - 2, floor, 100)
+    if (age >= 90) c.attrs.体魄 = clamp(c.attrs.体魄 - 2, floor, 100)
     // 高境界延寿
     if (realmIndex(c.realm) >= 4 && age % 5 === 0) {
       c.lifespan = Math.min(160, c.lifespan + 1)
     }
-    // 自然恢复一点伤
-    if (c.attrs.体魄 < 40) c.attrs.体魄 = clamp(c.attrs.体魄 + 1, 1, 100)
+    // 壮年前自然恢复；晚年不再回血，否则永摸不到寿终
+    if (age < 52 && c.attrs.体魄 < 40) {
+      c.attrs.体魄 = clamp(c.attrs.体魄 + 1, 1, 100)
+    }
   }
 
   private checkDeath(): string | null {
     const c = this.character
     if (c.age >= c.lifespan) return flavorLifespanDeath(c)
     if (c.attrs.体魄 <= 0) {
+      // 近寿元且无横死语境 → 走寿终通路（抬升 15%～45% 目标）
+      const nearLifespan = c.age >= Math.floor(c.lifespan * 0.78)
+      if (nearLifespan && !hasViolentDeathContext(c)) {
+        return flavorLifespanDeath(c)
+      }
       if (c.traitIds.includes('yixian') && this.rng() < 0.35) {
         c.attrs.体魄 = 15
         this.push({
@@ -844,6 +889,23 @@ export class LifeSimulator {
         })
         return null
       }
+      // 壮年无横死语境再保一次，把人命推向晚年/寿终区间
+      if (
+        c.age < Math.min(c.lifespan - 8, 58) &&
+        !hasViolentDeathContext(c) &&
+        !c.flags.includes('midlife_near_death')
+      ) {
+        c.attrs.体魄 = 10
+        c.flags.push('midlife_near_death')
+        this.push({
+          age: c.age,
+          kind: 'system',
+          title: '大难未死',
+          text: '你伤重卧床数月，竟又熬了过来。余生或许不长，故事却还没写到终章。',
+          importance: 4,
+        })
+        return null
+      }
       // 在籍且终章未收束：再保一次，让门派弧线有机会落幕
       if (
         c.age < 32 &&
@@ -876,7 +938,21 @@ export class LifeSimulator {
         })
         return null
       }
-      return flavorBodyDeath(c)
+      // 过早横死（含战死标签）：再免一次，推向寿终区间
+      {
+        const tentative = flavorBodyDeath(c)
+        if (trySparePrematureDeath(c, tentative)) {
+          this.push({
+            age: c.age,
+            kind: 'system',
+            title: '命悬一线',
+            text: `你几乎要「${tentative}」，却又撑了过来。`,
+            importance: 5,
+          })
+          return null
+        }
+      }
+      return rewriteLateDeath(c, flavorBodyDeath(c))
     }
     return null
   }
@@ -944,7 +1020,10 @@ export class LifeSimulator {
         if (shouldBlockSectFinaleEvent(c, ev)) return false
         if (!queueEventAllowed(c, ev)) {
           // 他族结局：再等几年，过久则丢
-          if (c.age - q.dueAge >= 12) return false
+          if (c.age - q.dueAge >= 12) {
+            this.noteUnfinishedQuest(ev.name || ev.id)
+            return false
+          }
           return true
         }
         if (pickedIds.has(ev.id)) return true
@@ -953,8 +1032,11 @@ export class LifeSimulator {
           pickedIds.add(ev.id)
           return false
         }
-        // 过期太久仍播不出 → 丢弃
-        if (c.age - q.dueAge >= 25) return false
+        // 过期太久仍播不出 → 丢弃并记未竟
+        if (c.age - q.dueAge >= 25) {
+          this.noteUnfinishedQuest(ev.name || ev.id)
+          return false
+        }
         return eventQueueRetryable(c, ev, this.usedOnce)
       })
 
@@ -1268,10 +1350,7 @@ export function buildEnding(sim: LifeSimulator): EndingReport {
   const mainline = detectMainline(c)
   const force = calcForce(c)
 
-  const highlights = sim.logs
-    .filter((l) => l.importance >= 4 && l.kind !== 'death')
-    .slice(-5)
-    .map((l) => `${l.age}岁·${l.title}`)
+  const highlights = pickLifeHighlights(sim.logs, c)
 
   const tags: string[] = []
   tags.push(
@@ -1309,7 +1388,12 @@ export function buildEnding(sim: LifeSimulator): EndingReport {
           .map((r) => `${r.kind}「${r.name}」`)
           .join('、')}${c.relations.length > 2 ? '等' : ''}。`
       : ''
+  const unfinishedLine =
+    sim.unfinishedQuests.length > 0
+      ? `未竟：${sim.unfinishedQuests.slice(0, 2).join('、')}${sim.unfinishedQuests.length > 2 ? '等' : ''}。`
+      : ''
   const identityLine = `身份：出身${origin.name}，主线「${mainline}」${primary ? `，人称「${primary}」` : ''}。`
+  const deathTag = primaryDeathTag(sim.deathReason, c)
   const summary = [
     `${c.name}${primary ? `，人称「${primary}」` : ''}。`,
     identityLine,
@@ -1321,7 +1405,8 @@ export function buildEnding(sim: LifeSimulator): EndingReport {
         ? ''
         : '未曾留下响亮名号。',
     relLine,
-    `终局：${sim.deathReason}。`,
+    unfinishedLine,
+    `终局：${sim.deathReason}（${deathTag}）。`,
   ]
     .filter(Boolean)
     .join('')
@@ -1338,6 +1423,40 @@ export function buildEnding(sim: LifeSimulator): EndingReport {
     force,
     lifeLog: [...sim.logs],
   }
+}
+
+/** 高潮节拍表：链入口 / 中劫·终章 / 关系·余波，而非单纯末 N 条 */
+function pickLifeHighlights(logs: LogEntry[], c: Character): string[] {
+  const scored = logs
+    .filter((l) => l.importance >= 3 && l.kind !== 'death' && l.kind !== 'summary')
+    .map((l) => {
+      let score = l.importance
+      const t = `${l.title}${l.text}`
+      if (/入门|拜山|投奔|开山/.test(t)) score += 3
+      if (/终章|掌门|决战|大比|祭剑|开坛|开寺/.test(t)) score += 4
+      if (/故人|师父|徒儿|仇|道侣|余波|归宿|未竟/.test(t)) score += 2
+      if (c.flags.includes('sect_finale') && /山门|同门|掌门/.test(t)) score += 1
+      return { l, score }
+    })
+    .sort((a, b) => b.score - a.score || a.l.age - b.l.age)
+
+  const picked: string[] = []
+  const seen = new Set<string>()
+  for (const { l } of scored) {
+    const key = `${l.age}-${l.title}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    picked.push(`${l.age}岁·${l.title}`)
+    if (picked.length >= 5) break
+  }
+  if (picked.length < 3) {
+    for (const l of logs.filter((x) => x.importance >= 4 && x.kind !== 'death').slice(-5)) {
+      const line = `${l.age}岁·${l.title}`
+      if (!picked.includes(line)) picked.push(line)
+      if (picked.length >= 5) break
+    }
+  }
+  return picked
 }
 
 function rarityScoreForEnding(r: string): number {
