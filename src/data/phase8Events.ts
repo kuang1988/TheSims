@@ -257,7 +257,7 @@ export const PHASE8_EVENTS: EventDef[] = [
             },
             onLose: {
               attrs: { 体魄: -25 },
-              addFlags: ['old_ailing'],
+              addFlags: ['old_ailing', 'betrayal_pursuit', 'severe_wound'],
               logExtra: '你败了，却没死在逆徒刀下——命是捡回来的。',
             },
           },

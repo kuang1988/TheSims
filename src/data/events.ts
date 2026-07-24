@@ -8,6 +8,7 @@ import { PHASE10_EVENTS } from './phase10Events'
 import { PHASE12_LIFE_EVENTS } from './phase12LifeEvents'
 import { PHASE16_EVENTS } from './phase16Events'
 import { PHASE17_EVENTS } from './phase17Events'
+import { PHASE20_DEATH_PACE_EVENTS } from './phase20DeathPaceEvents'
 import { TRAIT_DRIVE_EVENTS } from './traitDriveEvents'
 
 /**
@@ -1821,7 +1822,7 @@ const CORE_EVENTS: EventDef[] = [
         effects: {
           attrs: { 体魄: -18, 武力: 8, 正道声望: 20 },
           grantTitle: 'tianxiaodi',
-          addFlag: 'war_hero',
+          addFlags: ['war_hero', 'severe_wound'],
           queueEvents: [
             { id: 'old_pass_art', delayYears: 5 },
             { id: 'justice_epilogue', delayYears: 3 },
@@ -1898,8 +1899,9 @@ const CORE_EVENTS: EventDef[] = [
         effects: {
           attrs: { 体魄: -22, 邪道威名: 15 },
           grantTitle: 'eguiman',
-          addFlags: ['final_duel', 'demon_finale'],
+          addFlags: ['final_duel', 'demon_finale', 'severe_wound', 'battle_wounded', 'battlefield'],
           queueEvent: { id: 'demon_epilogue', delayYears: 1 },
+          logExtra: '正邪两军撞在一处。你压阵魔教旗下，刀光里分不清谁先倒下——这一战，教众以你的命为旗。',
         },
         tendencyTags: ['狠厉', '冒险'],
       },
@@ -1910,6 +1912,7 @@ const CORE_EVENTS: EventDef[] = [
           addFlags: ['retreated', 'demon_finale'],
           grantTitle: 'yinshi',
           queueEvent: { id: 'demon_epilogue', delayYears: 1 },
+          logExtra: '你弃了中原。西陲大漠里，魔教旗号渐渐淡成风沙。',
         },
         tendencyTags: ['谨慎'],
       },
@@ -1972,15 +1975,24 @@ const CORE_EVENTS: EventDef[] = [
         text: '冒险突破',
         effects: {
           setRealm: '先天',
-          attrs: { 体魄: -8, 武力: 10, 悟性: 3 },
-          addFlag: 'broke_through',
-          queueEvent: { id: 'gen_self_create', delayYears: 4 },
+          attrs: { 体魄: -6, 武力: 10, 悟性: 3 },
+          addFlags: ['broke_through', 'inner_risk', 'closedoor_risk'],
+          logExtra:
+            '你闭关硬闯。真气如潮，经脉又胀又痛——若本境已到头，这一闯便只留下心魔；若有寸进，也把破境之劫提前写进了命里。',
+          queueEvents: [
+            { id: 'omen_breakthrough', delayYears: 1 },
+            { id: 'gen_self_create', delayYears: 4 },
+          ],
         },
         tendencyTags: ['修炼', '冒险'],
       },
       {
         text: '稳扎稳打',
-        effects: { attrs: { 体魄: 3, 悟性: 2 }, upgradeMartialArt: 'any' },
+        effects: {
+          attrs: { 体魄: 3, 悟性: 2 },
+          upgradeMartialArt: 'any',
+          logExtra: '你按住心火，稳稳打磨根基。今夜无功，亦无劫。',
+        },
         tendencyTags: ['谨慎', '修炼'],
       },
     ],
@@ -2071,8 +2083,10 @@ const CORE_EVENTS: EventDef[] = [
         text: '追杀夺回',
         effects: {
           attrs: { 心性: -8, 体魄: -8, 武力: 3 },
-          addFlag: 'hunted_student',
+          addFlags: ['hunted_student', 'severe_wound', 'betrayal_pursuit'],
           removeFlag: 'has_student',
+          logExtra:
+            '你提刀追杀逆徒。刀光里，旧日传功与今日反目叠在一处——秘籍未回，身上已添新伤。师徒二字，到此血溅。',
         },
         tendencyTags: ['狠厉'],
       },
@@ -2082,6 +2096,7 @@ const CORE_EVENTS: EventDef[] = [
           attrs: { 心性: 6, 魅力: -3 },
           removeFlag: 'has_student',
           queueEvent: { id: 'old_pass_art', delayYears: 2 },
+          logExtra: '你收回杀心。秘籍可再写，这口气却咽进肚里——另择传人，也是一种了断。',
         },
         tendencyTags: ['侠义'],
       },
@@ -2238,9 +2253,20 @@ const CORE_EVENTS: EventDef[] = [
       {
         text: '赴约决战',
         effects: {
-          attrs: { 体魄: -20, 武力: 5 },
-          grantTitle: 'tianxiaodi',
           addFlag: 'final_duel',
+          combat: {
+            foePower: 68,
+            foeName: '宿敌',
+            onWin: {
+              attrs: { 武力: 5, 体魄: -8 },
+              grantTitle: 'tianxiaodi',
+              logExtra: '华山之巅，你活着走了下来。',
+            },
+            onLose: {
+              death: '血战而亡',
+              addFlag: 'battle_wounded',
+            },
+          },
         },
         tendencyTags: ['冒险', '侠义'],
       },
@@ -2254,21 +2280,32 @@ const CORE_EVENTS: EventDef[] = [
   {
     id: 'old_heaven',
     name: '天劫将至',
-    text: '你修为近乎大宗师，忽然感应天象异变，似有劫数。',
+    text: '你修为近乎大宗师，忽然感应天象异变，似有劫数。此刻硬接或可窥得更高境界，败则形神俱灭。',
     stages: ['晚年'],
     tags: ['修炼', '结局'],
     weight: 2,
     importance: 5,
     needsChoice: true,
     once: true,
-    conditions: { minRealmIndex: 4 },
+    conditions: { minRealmIndex: 4, forbidFlags: ['heaven_ok', 'heaven_failed'] },
     choices: [
       {
         text: '硬接天劫',
         effects: {
-          setRealm: '大宗师',
-          attrs: { 体魄: -25, 武力: 20 },
-          addFlag: 'heaven_ok',
+          combat: {
+            foePower: 78,
+            foeName: '天劫',
+            onWin: {
+              setRealm: '大宗师',
+              attrs: { 体魄: -18, 武力: 18 },
+              addFlag: 'heaven_ok',
+              logExtra: '天劫散去。你踏入大宗师之境，却也留下难以愈合的劫伤。',
+            },
+            onLose: {
+              death: '渡劫失败，形神俱灭',
+              addFlag: 'heaven_failed',
+            },
+          },
         },
         tendencyTags: ['修炼', '冒险'],
       },
@@ -2277,6 +2314,7 @@ const CORE_EVENTS: EventDef[] = [
         effects: {
           demoteRealm: '先天',
           attrs: { 体魄: 5, 武力: -15, 寿命: 5 },
+          logExtra: '你散去锋芒，躲过这一劫，修为却大打折扣。',
         },
         tendencyTags: ['谨慎'],
       },
@@ -2642,14 +2680,19 @@ const CORE_EVENTS: EventDef[] = [
         text: '血债血偿',
         effects: {
           attrs: { 心性: -6, 体魄: -8, 武力: 4 },
-          addFlag: 'avenged',
+          addFlags: ['avenged', 'severe_wound', 'revenge_pursuit'],
           removeFlag: 'sworn',
+          logExtra: '你提刀寻仇，一路追杀。仇未报尽，身上旧伤与急怒一并翻涌——这一趟，你把命也押上了。',
         },
         tendencyTags: ['狠厉', '侠义'],
       },
       {
         text: '交由官府',
-        effects: { attrs: { 心性: 4, 正道声望: 4 }, removeFlag: 'sworn' },
+        effects: {
+          attrs: { 心性: 4, 正道声望: 4 },
+          removeFlag: 'sworn',
+          logExtra: '你把案子交给官府。兄弟的血债，未必能讨得公道，你却先按下了屠刀。',
+        },
         tendencyTags: ['谨慎', '侠义'],
       },
     ],
@@ -2680,7 +2723,10 @@ const CORE_EVENTS: EventDef[] = [
           upgradeMartialArt: 'any',
           attrs: { 武力: 4, 体魄: -4 },
           addFlag: 'inner_risk',
-          queueEvent: { id: 'mid_closedoor', delayYears: 3 },
+          queueEvents: [
+            { id: 'mid_closedoor', delayYears: 3 },
+            { id: 'omen_breakthrough', delayYears: 2 },
+          ],
         },
         tendencyTags: ['冒险', '修炼'],
       },
@@ -2891,6 +2937,8 @@ const CORE_EVENTS: EventDef[] = [
           addMartialArt: 'liubo',
           setRealm: '宗师',
           attrs: { 体魄: -12, 武力: 15 },
+          addFlags: ['meridian_gamble', 'severe_wound'],
+          logExtra: '六阳灌体，成则宗师，败则伤经。',
         },
         tendencyTags: ['修炼', '冒险'],
       },
@@ -3256,4 +3304,5 @@ export const EVENTS: EventDef[] = [
   ...PHASE12_LIFE_EVENTS,
   ...PHASE16_EVENTS,
   ...PHASE17_EVENTS,
+  ...PHASE20_DEATH_PACE_EVENTS,
 ]

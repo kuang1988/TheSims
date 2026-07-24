@@ -7,20 +7,20 @@
     <title>江湖列传</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <!-- display=swap：弱网先回退系统宋体，再换正式书体，减少长时间空白 -->
+    <!-- display=optional：超时未加载则沿用系统宋体，避免 swap 闪一下换成网字 -->
     <link
       rel="preload"
       as="style"
-      href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=ZCOOL+XiaoWei&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=ZCOOL+XiaoWei&display=optional"
     />
     <link
-      href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=ZCOOL+XiaoWei&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=ZCOOL+XiaoWei&display=optional"
       rel="stylesheet"
     />
     <style>
-      /* 字体未到前的度量预留，减轻 FOUT 跳动 */
+      /* 与正式 --font-body / --font-display 回退栈对齐，减少度量跳动 */
       html {
-        font-family: 'Noto Serif SC', 'Songti SC', 'SimSun', serif;
+        font-family: 'Noto Serif SC', 'Songti SC', 'SimSun', 'STSong', serif;
         line-height: 1.75;
       }
     </style>

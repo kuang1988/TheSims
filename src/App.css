@@ -471,7 +471,7 @@ h3 {
   padding: 0 0.25rem;
 }
 
-.life--bookish .choice-box {
+.life--bookish .choice-box:not(.choice-box--over-book) {
   position: sticky;
   bottom: 0;
   z-index: 2;
@@ -496,6 +496,7 @@ h3 {
   min-height: 55vh;
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
 .log-panel--flash {
@@ -976,15 +977,53 @@ h3 {
   background: linear-gradient(180deg, rgba(156, 47, 26, 0.07), rgba(156, 47, 26, 0.11));
 }
 
+.choice-box__eyebrow {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  color: var(--cinnabar);
+}
+
 .choice-box h3 {
   margin: 0 0 var(--space-2);
   font-size: var(--text-xl);
+  font-family: var(--font-display);
+}
+
+.choice-box__event {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-md);
+  line-height: var(--leading-body);
+  color: var(--ink-soft);
 }
 
 .choice-box__hint {
   margin: 0 0 var(--space-3);
   font-size: var(--text-sm);
   color: var(--muted);
+}
+
+/* 人生书模式下：抉择盖住书页，避免「幼年正文 + 江湖选项」叠在一起 */
+.choice-box--over-book {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  overflow: auto;
+  border-top: none;
+  border-radius: inherit;
+  background: linear-gradient(180deg, var(--paper) 0%, var(--paper-2) 100%);
+  padding: var(--space-5) var(--space-5) calc(var(--space-5) + env(safe-area-inset-bottom, 0px));
+  box-shadow: none;
+}
+
+.choice-box--over-book .choice-box__art {
+  max-width: 18rem;
+  max-height: 12rem;
+}
+
+.life--bookish .choice-box--over-book {
+  position: absolute;
+  bottom: auto;
 }
 
 .choice-list {
@@ -1052,6 +1091,64 @@ h3 {
   border-radius: var(--radius-sm);
   background: rgba(52, 42, 32, 0.06);
   flex-shrink: 0;
+}
+
+.farewell {
+  text-align: center;
+}
+
+.farewell__stage {
+  display: grid;
+  gap: var(--space-5);
+  justify-items: center;
+  margin: var(--space-4) 0 var(--space-6);
+}
+
+.farewell__art {
+  width: min(100%, 18rem);
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  box-shadow: var(--shadow);
+}
+
+.farewell__copy {
+  max-width: 28rem;
+}
+
+.farewell__death {
+  margin: 0.35rem 0 0.5rem;
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 4vw, 1.75rem);
+  letter-spacing: 0.08em;
+}
+
+.farewell__lead {
+  margin: 0 0 0.85rem;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}
+
+.farewell__epilogue {
+  margin: 0;
+  line-height: 1.85;
+  color: var(--ink);
+  text-align: left;
+  font-size: 1.02rem;
+}
+
+@media (min-width: 640px) {
+  .farewell__stage {
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    text-align: left;
+    justify-items: start;
+  }
+
+  .farewell__art {
+    width: 11rem;
+  }
 }
 
 .ending-more {
@@ -1903,13 +2000,31 @@ h3 {
   transform: translateY(-4px);
 }
 
+/* 沉浸阅读：底栏只留翻页；设置/进度/书签不随翻页弹出 */
 .life-book--chrome-off .reader-chrome--bottom {
   opacity: 1;
   pointer-events: auto;
   transform: none;
 }
 
+.life-book--chrome-off .reader-chrome__tools--extra {
+  opacity: 0;
+  pointer-events: none;
+  height: 0;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  border: none;
+  transform: translateY(6px);
+}
+
 .life-book--chrome-on .reader-chrome {
+  opacity: 1;
+  pointer-events: auto;
+  transform: none;
+}
+
+.life-book--chrome-on .reader-chrome__tools--extra {
   opacity: 1;
   pointer-events: auto;
   transform: none;
@@ -1937,6 +2052,7 @@ h3 {
   justify-content: space-between;
   gap: 0.35rem;
   flex-wrap: wrap;
+  transition: opacity 0.22s ease, transform 0.22s ease, height 0.22s ease;
 }
 
 .reader-chrome__pager {

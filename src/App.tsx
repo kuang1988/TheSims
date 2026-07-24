@@ -330,7 +330,7 @@ export default function App() {
     setNewAchievements(synced.newAchievements)
     const originLabel = getOrigin(report.character.originId).name
     setShelfBooks(upsertShelfBook(report, seed, originLabel))
-    setScreen('ending')
+    setScreen('farewell')
   }, [seed])
 
   const goHome = () => {
@@ -502,6 +502,7 @@ export default function App() {
           </div>
         )}
         {(screen === 'birth' ||
+          screen === 'farewell' ||
           screen === 'ending' ||
           screen === 'shelf' ||
           screen === 'book' ||
@@ -961,6 +962,8 @@ export default function App() {
                     seed={seed}
                     originName={origin.name}
                     mode="live"
+                    focusEventId={pending?.event.id ?? null}
+                    focusAge={pending ? character.age : null}
                   />
                 ) : (
                   <div className="log-stream" ref={logStreamRef}>
@@ -981,8 +984,17 @@ export default function App() {
                 )}
 
                 {pending && (
-                  <div className="choice-box">
-                    <h3>如何抉择？</h3>
+                  <div
+                    className={`choice-box${readAsBook ? ' choice-box--over-book' : ''}`}
+                    role="dialog"
+                    aria-modal={readAsBook ? true : undefined}
+                    aria-labelledby="choice-box-title"
+                  >
+                    <p className="choice-box__eyebrow">
+                      {character.age}岁 · 重大抉择
+                    </p>
+                    <h3 id="choice-box-title">{pending.event.name}</h3>
+                    <p className="choice-box__event">{pending.event.text}</p>
                     <p className="choice-box__hint">此岔路口将改写后半生，请择一路。</p>
                     {(() => {
                       const pendingArt = artUrlForLog(
@@ -1032,6 +1044,45 @@ export default function App() {
                 )}
               </div>
             )}
+          </section>
+        )}
+
+        {screen === 'farewell' && ending && (
+          <section className="panel farewell">
+            <p className="eyebrow">落幕之前</p>
+            <div className="farewell__stage">
+              {endingDeathArt && (
+                <img
+                  className="farewell__art"
+                  src={endingDeathArt}
+                  alt=""
+                  loading="eager"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none'
+                  }}
+                />
+              )}
+              <div className="farewell__copy">
+                <p className="death-tag">{primaryDeathTag(ending.deathReason, ending.character)}</p>
+                <h1 className="death farewell__death">{ending.deathReason}</h1>
+                <p className="farewell__lead">
+                  {ending.character.name} · {ending.finalAge}岁 · {ending.mainline}
+                </p>
+                <p className="farewell__epilogue">
+                  {(
+                    ending.lifeLog.find((l) => l.kind === 'death')?.text.split('\n').slice(1).join('\n') ||
+                    ending.lifeLog
+                      .filter((l) => l.title === '大限将至' || l.title === '残灯将尽')
+                      .at(-1)?.text
+                  ) ?? '风声早起，事已至此。这一生，到了该合上的一页。'}
+                </p>
+              </div>
+            </div>
+            <div className="cta-row">
+              <button type="button" className="btn primary" onClick={() => setScreen('ending')}>
+                阅尽此生
+              </button>
+            </div>
           </section>
         )}
 

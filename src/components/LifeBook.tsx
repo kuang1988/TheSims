@@ -47,6 +47,8 @@ export function LifeBook({
   realisticFlip = true,
   startClosed = false,
   initialPage = 0,
+  focusEventId,
+  focusAge,
   onShare,
   footer,
   onBack,
@@ -65,6 +67,9 @@ export function LifeBook({
   /** 先显示合着的封面，点揭开再进翻页 */
   startClosed?: boolean
   initialPage?: number
+  /** 半自动抉择时跳到对应高潮页，避免书还停在幼年、选项已是江湖事 */
+  focusEventId?: string | null
+  focusAge?: number | null
   onShare?: () => void
   footer?: ReactNode
   onBack?: () => void
@@ -181,6 +186,33 @@ export function LifeBook({
     const lastContent = Math.max(0, pages.length - 2)
     setIndex((cur) => (cur >= lastContent - 1 ? lastContent : cur))
   }, [logs.length, mode, pages.length])
+
+  useEffect(() => {
+    if (mode !== 'live' || (!focusEventId && focusAge == null)) return
+    let target = -1
+    if (focusEventId) {
+      const stub = logs.find((l) => l.eventId === focusEventId)
+      if (stub) target = findClimaxPageIndex(pages, stub)
+      if (target < 0) {
+        target = pages.findIndex(
+          (p) => p.kind === 'climax' && p.entries[0]?.eventId === focusEventId,
+        )
+      }
+    }
+    if (target < 0 && focusAge != null) {
+      for (let i = pages.length - 1; i >= 0; i--) {
+        const p = pages[i]!
+        if ((p.kind === 'climax' || p.kind === 'spread') && p.age === focusAge) {
+          target = i
+          break
+        }
+      }
+    }
+    if (target >= 0) {
+      setShell('open')
+      setIndex(target)
+    }
+  }, [focusEventId, focusAge, mode, pages, logs])
 
   useEffect(() => {
     onProgress?.(index)
@@ -530,10 +562,7 @@ export function LifeBook({
               type="button"
               className="btn tiny"
               disabled={index <= 0 || flip !== 'idle'}
-              onClick={() => {
-                jumpTo(0)
-                showChrome()
-              }}
+              onClick={() => jumpTo(0)}
             >
               首页
             </button>
@@ -541,10 +570,7 @@ export function LifeBook({
               type="button"
               className="btn tiny"
               disabled={index <= 0 || flip !== 'idle'}
-              onClick={() => {
-                go(-1)
-                showChrome()
-              }}
+              onClick={() => go(-1)}
             >
               上一页
             </button>
@@ -552,10 +578,7 @@ export function LifeBook({
               type="button"
               className="btn tiny"
               disabled={index >= lastIndex || flip !== 'idle'}
-              onClick={() => {
-                go(1)
-                showChrome()
-              }}
+              onClick={() => go(1)}
             >
               下一页
             </button>
@@ -563,10 +586,7 @@ export function LifeBook({
               type="button"
               className="btn tiny"
               disabled={index >= lastIndex || flip !== 'idle'}
-              onClick={() => {
-                jumpTo(lastIndex)
-                showChrome()
-              }}
+              onClick={() => jumpTo(lastIndex)}
             >
               末页
             </button>
@@ -575,7 +595,6 @@ export function LifeBook({
         <div
           className="reader-chrome__tools reader-chrome__tools--extra"
           aria-hidden={!chromeVisible}
-          style={chromeVisible ? undefined : { opacity: 0, pointerEvents: 'none', height: 0, overflow: 'hidden', margin: 0, padding: 0, border: 'none' }}
         >
           <button
             type="button"
@@ -977,7 +996,9 @@ function SpreadPage({ page }: { page: BookPage }) {
       className={`book-spread book-spread--${page.kind}${isDeath ? ' book-spread--death' : ''}`}
     >
       <h3>
-        {page.age != null ? `${page.age}岁 · ` : ''}
+        {page.age != null && !String(page.title).startsWith(`${page.age}岁`)
+          ? `${page.age}岁 · `
+          : ''}
         {page.title}
       </h3>
       {page.artUrl && (

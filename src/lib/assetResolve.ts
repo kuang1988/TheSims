@@ -15,9 +15,10 @@ import { primaryDeathTag } from './deathTags'
 
 const STYLE_OK = true // 文档锚点：水墨淡彩武侠
 
-/** public/assets 下的 URL（兼容 GitHub Pages base） */
+/** public/assets 下的 URL（兼容 GitHub Pages base；Node 脚本无 Vite env） */
 export function assetUrl(relPath: string): string {
-  const base = import.meta.env.BASE_URL || '/'
+  const env = (import.meta as ImportMeta & { env?: { BASE_URL?: string } }).env
+  const base = env?.BASE_URL || '/'
   const cleaned = relPath.replace(/^\//, '')
   return `${base}assets/${cleaned}`.replace(/([^:]\/)\/+/g, '$1')
 }
@@ -146,7 +147,7 @@ export function climaxUrlFromHighlight(line: string): string | null {
 
 /** 日志条目旁图：死标终局图 / 高潮主题卡；无绑定时 null（UI 回落纯文字） */
 export function artUrlForLog(log: LogEntry, c: Character): string | null {
-  if (log.kind === 'death') return endingDeathUrl(log.text, c)
+  if (log.kind === 'death') return endingDeathUrl(log.text.split('\n')[0] ?? log.text, c)
   // 「·去向」抉择行不重复插图
   if (log.kind === 'choice') return null
   if (log.eventId) {

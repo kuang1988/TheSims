@@ -253,7 +253,7 @@ export const PHASE16_ESCORT_EVENTS: EventDef[] = [
     once: true,
     conditions: { flags: ['escort_confessed'] },
     choices: [
-      { text: '了结恩怨', effects: { combat: { foePower: 60, foeName: '劫镖头目', onWin: { attrs: { 武力: 5, 正道声望: 8 }, addFlag: 'escort_revenge_done', grantTitle: 'zhongyi' }, onLose: { attrs: { 体魄: -15 }, death: '镖道仇杀' } } }, tendencyTags: ['侠义'] },
+      { text: '了结恩怨', effects: { combat: { foePower: 60, foeName: '劫镖头目', onWin: { attrs: { 武力: 5, 正道声望: 8 }, addFlag: 'escort_revenge_done', grantTitle: 'zhongyi' }, onLose: { attrs: { 体魄: -15 }, death: '江湖走镖，命丧途中', addFlag: 'road_hazard' } } }, tendencyTags: ['侠义'] },
     ],
   },
   {

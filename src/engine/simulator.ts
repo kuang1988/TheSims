@@ -80,6 +80,7 @@ import {
   trySparePrematureDeath,
 } from '../lib/deathTags'
 import { ensureRelationCallbacks } from '../lib/relationPath'
+import { deathFarewellLine, ensureDeathPaceQueues, lifespanOmenLine } from '../lib/deathPace'
 import { detectMainline } from '../lib/story'
 import { pickPortraitLook } from '../lib/assetResolve'
 
@@ -235,6 +236,12 @@ export function applyEffects(
       text: result.text,
       importance: 4,
     })
+    if (!result.won) {
+      if (!c.flags.includes('battle_wounded')) c.flags.push('battle_wounded')
+    }
+    if (result.bodyDelta <= -12 && !c.flags.includes('severe_wound')) {
+      c.flags.push('severe_wound')
+    }
     const branch = result.won
       ? effects.combat.onWin
       : result.drew
@@ -245,7 +252,13 @@ export function applyEffects(
     }
   }
 
+  const bodyBefore = c.attrs.体魄
   applyAttrMods(c, effects.attrs)
+  const bodyDrop = bodyBefore - c.attrs.体魄
+  // 仅极端扣血打「急性重创」；伤愈后 yearlyDecay 会清除
+  if (bodyDrop >= 18 && !c.flags.includes('severe_wound')) {
+    c.flags.push('severe_wound')
+  }
 
   const toAdd = [
     ...(effects.addFlag ? [effects.addFlag] : []),
@@ -285,6 +298,12 @@ export function applyEffects(
   }
   if (flagsToAdd.length) enforceSectExclusivity(c, flagsToAdd)
   enforceSingleSectFinale(c, flagsToAdd)
+  // 安全破境「新获得」时卸掉急性走火/闭关债；勿在已安全破境后清掉新的闭关硬闯烙印
+  if (flagsToAdd.includes('broke_through_safe')) {
+    c.flags = c.flags.filter(
+      (f) => f !== 'inner_risk' && f !== 'meridian_gamble' && f !== 'closedoor_risk',
+    )
+  }
 
   const toRemove = [
     ...(effects.removeFlag ? [effects.removeFlag] : []),
@@ -330,6 +349,17 @@ export function applyEffects(
         title: '境界突破',
         text: `修为臻至【${effects.setRealm}】！`,
         importance: 4,
+      })
+      // 真正破境成功：卸掉本次闭关急性险，避免「刚突破却写成走火/劫伤善终矛盾」
+      c.flags = c.flags.filter((f) => f !== 'closedoor_risk')
+    } else if (next <= cur && flagsToAdd.includes('closedoor_risk')) {
+      // 闭关硬闯已达/超过目标境：仍交代冲关结果，避免人生书只剩「你选择」空白页
+      logs.push({
+        age,
+        kind: 'system',
+        title: '冲击瓶颈',
+        text: `你冲击【${effects.setRealm}】之境，然本境已到或未破更高门槛，真气一阵逆乱，只得暂且收功。`,
+        importance: 3,
       })
     }
   }
@@ -411,11 +441,12 @@ export function applyEffects(
       for (const f of stripped) {
         if (!c.flags.includes(f)) c.flags.push(f)
       }
+      const farewell = deathFarewellLine(c, rewritten)
       logs.push({
         age,
         kind: 'death',
         title: '陨落',
-        text: rewritten,
+        text: farewell ? `${rewritten}\n${farewell}` : rewritten,
         importance: 5,
       })
     }
@@ -923,6 +954,10 @@ export class LifeSimulator {
   private yearlyDecay() {
     const c = this.character
     const age = c.age
+    // 上一年急性烙印：若未当场陨落，进入新岁即卸掉（避免陈年债改写死因）
+    c.flags = c.flags.filter(
+      (f) => f !== 'closedoor_risk' && f !== 'revenge_pursuit' && f !== 'betrayal_pursuit',
+    )
     // 晚年允许体魄掉到 0，打开寿终/病榻通路
     const floor = age >= 62 ? 0 : 1
     if (age >= 50) c.attrs.体魄 = clamp(c.attrs.体魄 - 1, floor, 100)
@@ -937,15 +972,73 @@ export class LifeSimulator {
     if (age < 52 && c.attrs.体魄 < 40) {
       c.attrs.体魄 = clamp(c.attrs.体魄 + 1, 1, 100)
     }
+    // 伤势回稳后清除「急性重创」烙印，避免多年后体魄归零仍被改写成恶斗死
+    if (c.attrs.体魄 >= 10) {
+      c.flags = c.flags.filter(
+        (f) =>
+          f !== 'battle_wounded' &&
+          f !== 'severe_wound' &&
+          f !== 'escort_wounded' &&
+          f !== 'closedoor_risk' &&
+          f !== 'revenge_pursuit' &&
+          f !== 'betrayal_pursuit',
+      )
+    }
+    // 走火赌命若熬过：体魄回稳则卸掉急性走火债（慢性可另用 old_ailing）
+    if (c.attrs.体魄 >= 10 && c.flags.includes('meridian_gamble')) {
+      c.flags = c.flags.filter((f) => f !== 'meridian_gamble')
+    }
   }
 
   private checkDeath(): string | null {
     const c = this.character
-    if (c.age >= c.lifespan) return flavorLifespanDeath(c)
+    if (c.age >= c.lifespan) {
+      // 破境债未清：优先等到 death_breakthrough，勿用寿终盖掉
+      const btDue = c.eventQueue.find((q) => q.eventId === 'death_breakthrough')
+      if (
+        btDue &&
+        btDue.dueAge > c.age &&
+        (c.flags.includes('inner_risk') ||
+          c.flags.includes('closedoor_risk') ||
+          c.flags.includes('omen_breakthrough_done'))
+      ) {
+        c.lifespan = Math.max(c.lifespan, btDue.dueAge)
+        return null
+      }
+      if (hasViolentDeathContext(c)) {
+        return rewriteLateDeath(c, flavorBodyDeath(c))
+      }
+      if (!c.flags.includes('lifespan_farewell')) {
+        c.flags.push('lifespan_farewell', 'omen_lifespan_done')
+        this.push({
+          age: c.age,
+          kind: 'system',
+          title: '大限将至',
+          text: lifespanOmenLine(c),
+          importance: 4,
+        })
+        c.lifespan = c.age + 1
+        return null
+      }
+      return flavorLifespanDeath(c)
+    }
     if (c.attrs.体魄 <= 0) {
       // 近寿元且无横死语境 → 走寿终通路（抬升 15%～45% 目标）
       const nearLifespan = c.age >= Math.floor(c.lifespan * 0.78)
       if (nearLifespan && !hasViolentDeathContext(c)) {
+        if (!c.flags.includes('lifespan_farewell')) {
+          c.flags.push('lifespan_farewell', 'omen_lifespan_done')
+          this.push({
+            age: c.age,
+            kind: 'system',
+            title: '大限将至',
+            text: lifespanOmenLine(c),
+            importance: 4,
+          })
+          c.attrs.体魄 = 8
+          c.lifespan = Math.max(c.lifespan, c.age + 1)
+          return null
+        }
         return flavorLifespanDeath(c)
       }
       if (c.traitIds.includes('yixian') && this.rng() < 0.35) {
@@ -1084,6 +1177,19 @@ export class LifeSimulator {
           return null
         }
       }
+      // 体魄死前最后一拍仪式（非劫伤）：交代后事，不可写成已死绝笔
+      if (!c.flags.includes('body_farewell') && !hasViolentDeathContext(c)) {
+        c.flags.push('body_farewell')
+        c.attrs.体魄 = 5
+        this.push({
+          age: c.age,
+          kind: 'system',
+          title: '残灯将尽',
+          text: lifespanOmenLine(c),
+          importance: 4,
+        })
+        return null
+      }
       return rewriteLateDeath(c, flavorBodyDeath(c))
     }
     return null
@@ -1108,6 +1214,7 @@ export class LifeSimulator {
     ensureSectAftermath(c)
     ensureCivicStoryQueue(c)
     ensureRelationCallbacks(c)
+    ensureDeathPaceQueues(c)
 
     // 仇敌倒计时：到期则强制排队寻仇事件
     for (const eid of tickEnemyCountdowns(c)) {
@@ -1229,13 +1336,15 @@ export class LifeSimulator {
           [...yearLogs].reverse().find((l) => l.kind === 'death')?.text ?? choice.effects.death
         if (deathMsg) {
           this.ended = true
-          this.deathReason = sanitizeDeathReason(c, deathMsg)
+          const rawReason = String(deathMsg).split('\n')[0]!.trim()
+          this.deathReason = sanitizeDeathReason(c, rawReason)
           if (!yearLogs.some((l) => l.kind === 'death')) {
+            const farewell = deathFarewellLine(c, this.deathReason)
             pushYear({
               age: c.age,
               kind: 'death',
               title: '陨落',
-              text: this.deathReason,
+              text: farewell ? `${this.deathReason}\n${farewell}` : this.deathReason,
               importance: 5,
             })
           }
@@ -1251,11 +1360,12 @@ export class LifeSimulator {
     if (death) {
       this.ended = true
       this.deathReason = death
+      const farewell = deathFarewellLine(c, death)
       pushYear({
         age: c.age,
         kind: 'death',
         title: '陨落',
-        text: death,
+        text: farewell ? `${death}\n${farewell}` : death,
         importance: 5,
       })
       return { logs: yearLogs, pendingChoice: null, died: true, deathReason: death }
@@ -1293,13 +1403,15 @@ export class LifeSimulator {
       [...yearLogs].reverse().find((l) => l.kind === 'death')?.text ?? choice.effects.death
     if (deathMsg) {
       this.ended = true
-      this.deathReason = sanitizeDeathReason(this.character, deathMsg)
+      const rawReason = String(deathMsg).split('\n')[0]!.trim()
+      this.deathReason = sanitizeDeathReason(this.character, rawReason)
       if (!yearLogs.some((l) => l.kind === 'death')) {
+        const farewell = deathFarewellLine(this.character, this.deathReason)
         pushYear({
           age: this.character.age,
           kind: 'death',
           title: '陨落',
-          text: this.deathReason,
+          text: farewell ? `${this.deathReason}\n${farewell}` : this.deathReason,
           importance: 5,
         })
       }
@@ -1310,11 +1422,12 @@ export class LifeSimulator {
     if (death) {
       this.ended = true
       this.deathReason = death
+      const farewell = deathFarewellLine(this.character, death)
       pushYear({
         age: this.character.age,
         kind: 'death',
         title: '陨落',
-        text: death,
+        text: farewell ? `${death}\n${farewell}` : death,
         importance: 5,
       })
       return { logs: yearLogs, pendingChoice: null, died: true, deathReason: death }

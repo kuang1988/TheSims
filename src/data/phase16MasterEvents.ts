@@ -185,7 +185,7 @@ export const PHASE16_MASTER_EVENTS: EventDef[] = [
     once: true,
     conditions: { anyFlags: ['master_secret_read', 'master_p16'] },
     choices: [
-      { text: '拔剑应战', effects: { combat: { foePower: 62, foeName: '敌门长老', onWin: { attrs: { 武力: 8, 正道声望: 6 }, addFlag: 'master_duel_win', grantTitle: 'yijian' }, onLose: { attrs: { 体魄: -12 }, death: '代师论剑败亡' } } }, tendencyTags: ['冒险'] },
+      { text: '拔剑应战', effects: { combat: { foePower: 62, foeName: '敌门长老', onWin: { attrs: { 武力: 8, 正道声望: 6 }, addFlag: 'master_duel_win', grantTitle: 'yijian' }, onLose: { attrs: { 体魄: -12 }, death: '血战而亡', addFlag: 'battle_wounded' } } }, tendencyTags: ['冒险'] },
       { text: '跪求免战', effects: { attrs: { 魅力: -5, 心性: -3 }, addFlag: 'master_duel_yield', logExtra: '师门蒙羞，师父闭门不出。' }, tendencyTags: ['谨慎'] },
     ],
   },
@@ -320,7 +320,7 @@ export const PHASE16_MASTER_EVENTS: EventDef[] = [
     once: true,
     conditions: { flags: ['master_farewell_done'] },
     choices: [
-      { text: '拔剑复仇', effects: { combat: { foePower: 65, foeName: '师门仇敌', onWin: { attrs: { 武力: 6 }, addFlag: 'master_revenge_done', grantTitle: 'xuezhai' }, onLose: { attrs: { 体魄: -15 }, death: '师仇未报' } } }, tendencyTags: ['狠厉'] },
+      { text: '拔剑复仇', effects: { combat: { foePower: 65, foeName: '师门仇敌', onWin: { attrs: { 武力: 6 }, addFlag: 'master_revenge_done', grantTitle: 'xuezhai' }, onLose: { attrs: { 体魄: -15 }, death: '仇敌寻仇，命丧黄泉', addFlags: ['enemy_due', 'battle_wounded'] } } }, tendencyTags: ['狠厉'] },
       { text: '放下恩怨', effects: { attrs: { 心性: 6 }, addFlag: 'master_forgave', grantTitle: 'xiaoyaoyou', logExtra: '仇家愣住，终是离去。' }, tendencyTags: ['侠义'] },
     ],
   },

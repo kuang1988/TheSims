@@ -1055,7 +1055,10 @@ export const TRAIT_DRIVE_EVENTS: EventDef[] = [
           attrs: { 悟性: 4, 武力: 6, 体魄: -6, 福缘: -4 },
           setRealm: '后天',
           addFlags: ['lingxi_path', 'broke_through', 'inner_risk'],
-          queueEvent: { id: 'mid_closedoor', delayYears: 3 },
+          queueEvents: [
+            { id: 'mid_closedoor', delayYears: 3 },
+            { id: 'omen_breakthrough', delayYears: 2 },
+          ],
         },
         tendencyTags: ['冒险', '修炼'],
       },
@@ -1406,8 +1409,11 @@ export const TRAIT_DRIVE_EVENTS: EventDef[] = [
         effects: {
           attrs: { 寿命: -5, 悟性: 6, 武力: 4 },
           setRealm: '后天',
-          addFlags: ['changming_path', 'broke_through'],
-          queueEvent: { id: 'mid_closedoor', delayYears: 4 },
+          addFlags: ['changming_path', 'broke_through', 'inner_risk'],
+          queueEvents: [
+            { id: 'mid_closedoor', delayYears: 4 },
+            { id: 'omen_breakthrough', delayYears: 2 },
+          ],
         },
         tendencyTags: ['冒险', '修炼'],
       },
@@ -1496,9 +1502,12 @@ export const TRAIT_DRIVE_EVENTS: EventDef[] = [
         text: '以静破境',
         effects: {
           attrs: { 悟性: 5, 心性: 6 },
-          addFlags: ['jingxin_path', 'broke_through'],
+          addFlags: ['jingxin_path', 'broke_through', 'inner_risk'],
           setRealm: '先天',
-          queueEvent: { id: 'mid_closedoor', delayYears: 4 },
+          queueEvents: [
+            { id: 'mid_closedoor', delayYears: 4 },
+            { id: 'omen_breakthrough', delayYears: 2 },
+          ],
         },
         tendencyTags: ['修炼'],
       },

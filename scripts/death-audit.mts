@@ -1,5 +1,6 @@
 /**
  * 死因文案种类、精标分布、寿终通路、凡尘分桶与身份一致性审计。
+ * Phase 20 另计：突兀/铺垫指标。
  * 运行：npm run death-audit
  */
 import { writeFileSync } from 'fs'
@@ -10,10 +11,11 @@ import {
   civicArcDeathMatch,
   deathIdentityMismatch,
   deathSoftMismatch,
-  hasCivicPath,
+  isPeacefulDeathReason,
   isCivicPeacefulDeath,
   primaryDeathTag,
 } from '../src/lib/deathTags.ts'
+import { hasDeathPaceFlag } from '../src/lib/deathPace.ts'
 import { CIVIC_FINALE_FLAGS } from '../src/lib/civicPath.ts'
 
 const SEEDS = Array.from({ length: 40 }, (_, i) => 70000 + i * 17)
@@ -37,6 +39,15 @@ let civicFinaleMatchN = 0
 let civicFinaleReachN = 0
 let noMajorN = 0
 
+let pacedDeathN = 0
+let abruptBreakthroughN = 0
+let breakthroughDeathN = 0
+let systemDeathNoFarewellN = 0
+let systemDeathN = 0
+
+let narrativeRewrittenN = 0
+const narrativeRewrites: string[] = []
+
 for (const seed of SEEDS) {
   const c = createBirth(seed)
   const sim = new LifeSimulator(c, seed ^ 0xabcdef, 'auto')
@@ -46,7 +57,7 @@ for (const seed of SEEDS) {
   }
   const ending = buildEnding(sim)
   const ch = ending.character
-  const reason = sim.deathReason || '未知'
+  const reason = (sim.deathReason || '未知').split('\n')[0]!.trim()
   reasonCounts.set(reason, (reasonCounts.get(reason) ?? 0) + 1)
 
   const primary = primaryDeathTag(reason, ch)
@@ -100,6 +111,69 @@ for (const seed of SEEDS) {
     noMajorN += 1
     if (hasFinale) civicFinaleReachN += 1
   }
+
+  if (
+    hasDeathPaceFlag(ch) ||
+    ending.lifeLog.some(
+      (l) =>
+        l.title === '大限将至' ||
+        l.title === '残灯将尽' ||
+        (l.kind === 'death' && l.text.includes('\n')),
+    )
+  ) {
+    pacedDeathN += 1
+  }
+
+  const isBreakthrough = /突破失败|走火/.test(reason) || primary === '突破失败'
+  if (isBreakthrough) {
+    breakthroughDeathN += 1
+    const hasDebt =
+      ch.flags.includes('inner_risk') ||
+      ch.flags.includes('broke_through') ||
+      ch.flags.includes('omen_breakthrough_done') ||
+      ch.flags.includes('qi_deviation')
+    if (!hasDebt) abruptBreakthroughN += 1
+  }
+
+  const isSystem =
+    /寿终|坐化|无疾|隐世|宗师善终|狱中而终|病榻|沉疴|劳伤|伤重不治|体魄崩解/.test(reason) ||
+    ['寿终正寝', '隐世而终', '宗师善终', '狱中而终', '病榻而终', '伤重不治'].includes(primary)
+  if (isSystem) {
+    systemDeathN += 1
+    const hasFarewell =
+      ch.flags.includes('lifespan_farewell') ||
+      ch.flags.includes('body_farewell') ||
+      ch.flags.includes('omen_lifespan_done') ||
+      ending.lifeLog.some(
+        (l) =>
+          l.title === '大限将至' ||
+          l.title === '残灯将尽' ||
+          (l.kind === 'death' && l.text.includes('\n')),
+      )
+    if (!hasFarewell) systemDeathNoFarewellN += 1
+  }
+
+  // 同岁败战/天劫却写成善终
+  if (isPeacefulDeathReason(reason)) {
+    const deathAge = ending.lifeLog.find((l) => l.kind === 'death')?.age ?? ch.age
+    const sameYearCombatLoss = ending.lifeLog.some(
+      (l) => l.age === deathAge && (l.title === '冲突·惨败' || l.title === '冲突·两败'),
+    )
+    const sameYearTribulation = ending.lifeLog.some(
+      (l) => l.age === deathAge && (l.title === '天劫将至' || l.title.includes('天劫将至')),
+    )
+    if (
+      sameYearCombatLoss ||
+      sameYearTribulation ||
+      ch.flags.includes('heaven_failed') ||
+      (ch.flags.includes('qi_deviation') && sameYearCombatLoss)
+    ) {
+      narrativeRewrittenN += 1
+      narrativeRewrites.push(
+        `种子${seed} · ${reason} · 败战=${sameYearCombatLoss} · 天劫=${sameYearTribulation} · 烙印[${ch.flags.filter((f) => ['battle_wounded', 'severe_wound', 'final_duel', 'meridian_gamble', 'heaven_ok', 'heaven_failed', 'qi_deviation'].includes(f)).join(',')}]`,
+      )
+    }
+  }
 }
 
 const shouzhongN =
@@ -125,8 +199,12 @@ const civicPeacefulRate = civicMainlineN ? civicPeacefulN / civicMainlineN : 0
 const civicArcMatchRate = civicFinaleN ? civicFinaleMatchN / civicFinaleN : 1
 const civicFinaleReachRate = noMajorN ? civicFinaleReachN / noMajorN : 0
 
+const pacedRate = pacedDeathN / SEEDS.length
+const abruptBreakthroughRate = breakthroughDeathN ? abruptBreakthroughN / breakthroughDeathN : 0
+const systemNoFarewellRate = systemDeathN ? systemDeathNoFarewellN / systemDeathN : 0
+
 const lines = [
-  '# 死因审计报告（Phase 10）',
+  '# 死因审计报告（Phase 20）',
   '',
   `生成时间：${new Date().toISOString()}`,
   `局数：${SEEDS.length}`,
@@ -148,6 +226,13 @@ const lines = [
   `- 关系非空局：${((withRelations / SEEDS.length) * 100).toFixed(1)}%`,
   `- 短传含「人事」：${((summaryHasRen / SEEDS.length) * 100).toFixed(1)}%`,
   `- DEATH_REASONS 池定义种数：${DEATH_REASONS.length}`,
+  '',
+  '## Phase 20 终局连贯',
+  `- 有铺垫/绝笔局：${(pacedRate * 100).toFixed(1)}%（目标 ≥70%，${pacedDeathN}/${SEEDS.length}）`,
+  `- 破境死无债：${abruptBreakthroughN}/${breakthroughDeathN || 0}（目标 0；比率 ${(abruptBreakthroughRate * 100).toFixed(1)}%）`,
+  `- 系统死无仪式：${systemDeathNoFarewellN}/${systemDeathN || 0}（目标 ≤20%；比率 ${(systemNoFarewellRate * 100).toFixed(1)}%）`,
+  `- 同岁恶斗却善终：${narrativeRewrittenN}（目标 0）`,
+  ...(narrativeRewrites.length ? narrativeRewrites.slice(0, 12).map((m) => `  - ${m}`) : ['  - （无）']),
   '',
   '## 主死标分布',
   ...[...primaryTagCounts.entries()]
@@ -190,6 +275,16 @@ if (noMajorN >= 8 && civicFinaleReachRate < 0.55) {
 }
 if (civicFinaleN >= 5 && civicArcMatchRate < 0.8) {
   fail.push(`弧绑定 ${(civicArcMatchRate * 100).toFixed(1)}% < 80%`)
+}
+if (pacedRate < 0.7) fail.push(`有铺垫局 ${(pacedRate * 100).toFixed(1)}% < 70%`)
+if (abruptBreakthroughN > 0) {
+  fail.push(`破境死无债 ${abruptBreakthroughN} > 0`)
+}
+if (systemDeathN >= 8 && systemNoFarewellRate > 0.2) {
+  fail.push(`系统死无仪式 ${(systemNoFarewellRate * 100).toFixed(1)}% > 20%`)
+}
+if (narrativeRewrittenN > 0) {
+  fail.push(`同岁恶斗却善终 ${narrativeRewrittenN} > 0`)
 }
 
 if (fail.length) {

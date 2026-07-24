@@ -37,8 +37,8 @@
   --text-2xl: clamp(1.8rem, 4vw, 2.55rem);
 
   /* 字体职责 */
-  --font-body: 'Noto Serif SC', 'Songti SC', 'SimSun', serif;
-  --font-display: 'ZCOOL XiaoWei', 'Noto Serif SC', 'Songti SC', serif;
+  --font-body: 'Noto Serif SC', 'Songti SC', 'SimSun', 'STSong', serif;
+  --font-display: 'ZCOOL XiaoWei', 'Noto Serif SC', 'Songti SC', 'SimSun', 'STSong', serif;
   --font-mono: ui-monospace, 'Cascadia Code', 'Sarasa Mono SC', monospace;
 
   /* 行高 */

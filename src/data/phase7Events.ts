@@ -16,6 +16,7 @@ export const PHASE7_EVENTS: EventDef[] = [
     minAge: 40,
     conditions: {
       anyFlags: ['official', 'fugitive'],
+      flags: ['omen_court_done'],
       forbidFlags: ['left_court_safe', 'retired_official', 'civic_shi_finale', 'death_court_done'],
     },
     choices: [
@@ -47,7 +48,10 @@ export const PHASE7_EVENTS: EventDef[] = [
     needsChoice: true,
     once: true,
     minAge: 35,
-    conditions: { flags: ['lost_lover'], forbidFlags: ['love_finale', 'refused_qingjie', 'love_closed', 'lover_fate_done'] },
+    conditions: {
+      flags: ['lost_lover', 'omen_qingjie_done'],
+      forbidFlags: ['love_finale', 'refused_qingjie', 'love_closed', 'lover_fate_done'],
+    },
     choices: [
       {
         text: '一醉不醒',
@@ -94,15 +98,19 @@ export const PHASE7_EVENTS: EventDef[] = [
   {
     id: 'death_breakthrough',
     name: '破境之劫',
-    text: '你冲击更高境界，真气逆乱。此刻退则废功，进则可能经脉尽断。',
+    text: '此前冲关留下的隐患今夜全数翻涌：真气逆乱，退则废功，进则可能经脉尽断。',
     stages: ['壮年', '晚年'],
     tags: ['修炼', '结局'],
-    weight: 2,
+    weight: 3,
     importance: 5,
     needsChoice: true,
     once: true,
     minAge: 40,
-    conditions: { minRealmIndex: 3, forbidFlags: ['broke_through_safe'] },
+    conditions: {
+      minRealmIndex: 3,
+      anyFlags: ['inner_risk', 'broke_through', 'omen_breakthrough_done'],
+      forbidFlags: ['broke_through_safe'],
+    },
     choices: [
       {
         text: '硬闯',
@@ -122,7 +130,7 @@ export const PHASE7_EVENTS: EventDef[] = [
           demoteRealm: '先天',
           attrs: { 体魄: 8, 武力: -15 },
           addFlag: 'broke_through_safe',
-          logExtra: '你保住了性命，却也断了巅峰之路。',
+          logExtra: '你保住了性命，却也断了巅峰之路。此前闭关所求，至此一笔勾销。',
         },
         tendencyTags: ['谨慎'],
       },
@@ -142,6 +150,7 @@ export const PHASE7_EVENTS: EventDef[] = [
     minAge: 48,
     conditions: {
       anyFlags: ['sect_huashan', 'sect_wudang', 'sect_shaolin', 'sect_emei', 'sect_gaibang'],
+      flags: ['omen_sect_siege_done'],
       // 终章前/离派协议中不抢戏；已终章也不再殉（留给余波）
       forbidFlags: [
         'left_sect',
@@ -196,7 +205,11 @@ export const PHASE7_EVENTS: EventDef[] = [
     importance: 4,
     needsChoice: true,
     once: true,
-    conditions: { anyFlags: ['poisoned', 'emei_poison_kept', 'duyi_path'], forbidFlags: ['poison_cleared'] },
+    conditions: {
+      anyFlags: ['poisoned', 'emei_poison_kept', 'duyi_path'],
+      flags: ['omen_poison_done'],
+      forbidFlags: ['poison_cleared'],
+    },
     choices: [
       {
         text: '认命闭眼',
@@ -235,7 +248,8 @@ export const PHASE7_EVENTS: EventDef[] = [
         text: '不还手',
         effects: {
           death: '被徒弟背叛而死',
-          addFlags: ['betrayal_resolved', 'disciple_fate_done'],
+          addFlags: ['betrayal_resolved', 'disciple_fate_done', 'betrayal_pursuit'],
+          logExtra: '你收势不还手。刀尖入怀的一瞬，旧日传功的面容与今日杀意叠在一起——师徒缘，至此断绝。',
         },
         tendencyTags: ['侠义', '谨慎'],
       },
@@ -243,10 +257,11 @@ export const PHASE7_EVENTS: EventDef[] = [
         text: '亲手了结这段师徒',
         effects: {
           attrs: { 心性: -12, 体魄: -8 },
-          addFlags: ['betrayal_resolved', 'disciple_fate_done'],
+          addFlags: ['betrayal_resolved', 'disciple_fate_done', 'betrayal_pursuit', 'severe_wound'],
           setRelation: { kind: '徒弟', clear: true },
           removeFlag: 'has_student',
           grantTitle: 'eguiman',
+          logExtra: '刀落之后，师徒缘尽。你活着，却也像死过一回。',
         },
         tendencyTags: ['狠厉'],
       },

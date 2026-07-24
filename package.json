@@ -13,6 +13,7 @@
     "sect-fork": "npx --yes tsx scripts/sect-fork-summary.mts",
     "choice-audit": "npx --yes tsx scripts/choice-audit.mts",
     "death-audit": "npx --yes tsx scripts/death-audit.mts",
+    "death-chain-audit": "npx --yes tsx scripts/death-chain-audit.mts",
     "event-census": "npx --yes tsx scripts/event-census.mts",
     "data-audit": "npx --yes tsx scripts/data-ref-audit.mts",
     "asset-audit": "npx --yes tsx scripts/asset-climax-audit.mts"

@@ -47,7 +47,7 @@ export function buildLifeBookPages(
   const flushSpread = () => {
     if (!buf.length) return
     const age = buf[0]?.age
-    const title = buf.length === 1 ? buf[0].title : `${age}岁 · 数事`
+    const title = buf.length === 1 ? buf[0].title : '数事'
     content.push({
       id: `spread-${content.length}-${age}-${buf[0]?.title}`,
       kind: 'spread',

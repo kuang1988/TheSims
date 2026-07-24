@@ -136,6 +136,11 @@ export const CLIMAX_BY_EVENT_ID: Record<string, ClimaxKey> = {
   wudang_demon_siege: 'c_sect_war',
   shaolin_sect_war: 'c_sect_war',
   death_sect_martyr: 'c_sect_war',
+  death_breakthrough: 'c_justice_mid',
+  omen_breakthrough: 'c_justice_mid',
+  old_heaven: 'c_justice_finale',
+  omen_sect_siege: 'c_sect_war',
+  omen_qingjie: 'c_love_tragedy',
   mid_sect_fight: 'c_sect_mid',
   // —— escort 薄链 ——
   youth_merchant: 'c_escort_mid',
