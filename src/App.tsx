@@ -117,19 +117,21 @@ function displayName(c: Character): string {
   return `${c.name} · ${getTitle(c.primaryTitleId).name}`
 }
 
-function AttrBar({ label, value, max = 100 }: { label: string; value: number; max?: number }) {
-  const pct = Math.max(0, Math.min(100, ((value + (label === '心性' ? 100 : 0)) / (label === '心性' ? 200 : max)) * 100))
-  return (
-    <div className="attr-bar">
-      <div className="attr-bar__label">
-        <span>{label}</span>
-        <span>{value}</span>
-      </div>
-      <div className="attr-bar__track">
-        <div className="attr-bar__fill" style={{ width: `${pct}%` }} />
-      </div>
-    </div>
-  )
+function rarityClass(r: string) {
+  return r === '传说'
+    ? 'rarity-legend'
+    : r === '史诗'
+      ? 'rarity-epic'
+      : r === '稀有'
+        ? 'rarity-rare'
+        : 'rarity-common'
+}
+
+function martialRarityLabel(grade: string) {
+  if (grade === '神功' || grade === '绝学') return '传说'
+  if (grade === '上乘') return '史诗'
+  if (grade === '中乘') return '稀有'
+  return '普通'
 }
 
 export default function App() {
@@ -1154,14 +1156,23 @@ export default function App() {
               )}
 
               {showEndingDetail && (
-                <StatusPanel character={ending.character} title="终局详情" readOnly showOrigin />
+                <StatusPanel
+                  character={ending.character}
+                  title="终局详情"
+                  readOnly
+                  showOrigin
+                  profileOnly
+                />
               )}
 
               {showEndingLoot && (
-                <div className="ending-loot">
+                <div className="ending-loot status-panel--book">
                   {ending.highlights.length > 0 && (
-                    <>
-                      <h3>生平高潮</h3>
+                    <div className="book-profile">
+                      <h3 className="book-profile__section">
+                        生平高潮
+                        <span>{ending.highlights.length} 幕</span>
+                      </h3>
                       <ul className="highlight-list">
                         {ending.highlights.map((h) => {
                           const climaxSrc = climaxUrlFromHighlight(h)
@@ -1183,39 +1194,69 @@ export default function App() {
                           )
                         })}
                       </ul>
-                    </>
+                    </div>
                   )}
-                  <h3>武学</h3>
-                  <ul className="trait-list compact">
-                    {ending.character.martialArts.map((m) => {
-                      const d = getMartial(m.id)
-                      return (
-                        <li key={m.id}>
-                          <strong>{d.name}</strong>
-                          <span>
-                            {d.grade} · {m.level}
-                          </span>
-                        </li>
-                      )
-                    })}
-                  </ul>
-                  <h3>名号</h3>
-                  <ul className="trait-list compact">
-                    {ending.character.titles.map((t) => {
-                      const d = getTitle(t.id)
-                      return (
-                        <li key={t.id}>
-                          <strong>
-                            {d.name}
-                            {ending.character.primaryTitleId === t.id ? '（主）' : ''}
-                          </strong>
-                          <span>
-                            {t.gainedAt}岁 · {d.rarity}
-                          </span>
-                        </li>
-                      )
-                    })}
-                  </ul>
+                  <div className="book-profile book-profile--arts">
+                    <h3 className="book-profile__section">
+                      武学列表
+                      <span>{ending.character.martialArts.length} 门</span>
+                    </h3>
+                    {ending.character.martialArts.length === 0 ? (
+                      <p className="muted">尚不会武，只凭蛮力。</p>
+                    ) : (
+                      <ul className="codex-achieve-grid book-profile__grid">
+                        {ending.character.martialArts.map((m) => {
+                          const d = getMartial(m.id)
+                          return (
+                            <li
+                              key={m.id}
+                              className={`codex-achieve codex-achieve--on ${rarityClass(martialRarityLabel(d.grade))}`}
+                            >
+                              <strong>{d.name}</strong>
+                              <em className="book-profile__tag">
+                                {d.grade} · 第{m.level}层
+                              </em>
+                              <span>
+                                {d.type} · {m.learnedAt}岁得自{m.source}
+                              </span>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    )}
+
+                    <h3 className="book-profile__section">
+                      名号
+                      <span>{ending.character.titles.length} 枚</span>
+                    </h3>
+                    {ending.character.titles.length === 0 ? (
+                      <p className="muted">尚无江湖名号。</p>
+                    ) : (
+                      <ul className="codex-achieve-grid book-profile__grid">
+                        {ending.character.titles.map((t) => {
+                          const d = getTitle(t.id)
+                          const isPrimary = ending.character.primaryTitleId === t.id
+                          return (
+                            <li
+                              key={t.id}
+                              className={`codex-achieve codex-achieve--on ${rarityClass(d.rarity)}${isPrimary ? ' book-profile__primary' : ''}`}
+                            >
+                              <strong>
+                                {d.name}
+                                {isPrimary ? ' · 主' : ''}
+                              </strong>
+                              <em className="book-profile__tag">
+                                {d.rarity} · {d.type}
+                              </em>
+                              <span>
+                                {t.gainedAt}岁获得 · {d.desc}
+                              </span>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    )}
+                  </div>
                 </div>
               )}
             </details>
@@ -1259,16 +1300,20 @@ function StatusPanel({
   title = '角色状态',
   readOnly = false,
   showOrigin = false,
+  /** 终局「详细属性」只展示与入世一致的六维/天赋/人事 */
+  profileOnly = false,
 }: {
   character: Character
   onSetPrimary?: (id: string) => void
   title?: string
   readOnly?: boolean
   showOrigin?: boolean
+  profileOnly?: boolean
 }) {
   const origin = showOrigin ? getOrigin(character.originId) : null
+
   return (
-    <div className={`status-panel ${readOnly ? 'status-panel--embedded' : 'panel'}`}>
+    <div className={`status-panel status-panel--book ${readOnly ? 'status-panel--embedded' : 'panel'}`}>
       <div className="status-panel__head">
         <img
           className="status-panel__portrait"
@@ -1285,108 +1330,147 @@ function StatusPanel({
               {character.name} · {character.gender} · 出身{origin.name} · 享年{character.age}岁
             </p>
           )}
+          {!origin && (
+            <p className="meta">
+              {character.name} · {character.gender} · {character.age}岁
+            </p>
+          )}
         </div>
       </div>
-      <div className="grid-2">
-        <div>
-          <h3>属性</h3>
-          {(Object.keys(character.attrs) as (keyof Character['attrs'])[]).map((k) => (
-            <AttrBar
-              key={k}
-              label={k === '心性' ? `心性·${heartTier(character.attrs.心性)}` : k}
-              value={character.attrs[k]}
-            />
-          ))}
-          <p className="meta">
-            境界 {character.realm} · 战力 {calcForce(character)} · 寿元上限 {character.lifespan}
-          </p>
-          <p className="meta">
-            正道声望 {character.fameGood} · 邪道威名 {character.fameEvil} · 财富 {character.wealth}
-          </p>
+
+      <div className="book-profile book-profile--attrs">
+        <h3 className="book-profile__section">
+          六维与心性
+          <span>
+            {character.realm} · 战力 {calcForce(character)} · 寿元约 {character.lifespan} 岁
+          </span>
+        </h3>
+        <p className="meta">
+          正道声望 {character.fameGood} · 邪道威名 {character.fameEvil} · 财富 {character.wealth}
+        </p>
+        <div className="attr-duo">
+          <HexAttrRadar attrs={character.attrs} size={200} />
+          <HeartDial value={character.attrs.心性} />
         </div>
-        <div>
-          <h3>天赋</h3>
-          <ul className="trait-list compact">
+      </div>
+
+      <div className="book-profile book-profile--bonds">
+        <h3 className="book-profile__section">
+          天赋词条
+          <span>{character.traitIds.length} 枚</span>
+        </h3>
+        {character.traitIds.length === 0 ? (
+          <p className="muted">此生未点醒天赋。</p>
+        ) : (
+          <ul className="codex-achieve-grid book-profile__grid">
             {character.traitIds.map((id) => {
               const t = getTrait(id)
               return (
-                <li key={id}>
+                <li key={id} className={`codex-achieve codex-achieve--on ${rarityClass(t.rarity)}`} title={t.desc}>
                   <strong>{t.name}</strong>
+                  <em className="book-profile__tag">{t.rarity}</em>
                   <span>{t.desc}</span>
                 </li>
               )
             })}
           </ul>
-        </div>
-      </div>
+        )}
 
-      <h3>人际关系</h3>
-      {character.relations.length === 0 ? (
-        <p className="muted">尚无固定人事牵绊。</p>
-      ) : (
-        <ul className="relation-list">
-          {character.relations.map((r) => (
-            <li key={`${r.kind}-${r.name}`}>
-              <strong>
-                {r.kind} · {r.name}
-              </strong>
-              <span>
-                羁绊 {r.bond}
-                {r.kind === '仇敌' && r.revengeIn != null ? ` · 寻仇倒计时 ${r.revengeIn} 年` : ''}
-                {r.note ? ` · ${r.note}` : ''}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <h3>武学列表</h3>
-      {character.martialArts.length === 0 ? (
-        <p className="muted">尚不会武，只凭蛮力。</p>
-      ) : (
-        <ul className="martial-list">
-          {character.martialArts.map((m) => {
-            const d = getMartial(m.id)
-            return (
-              <li key={m.id}>
-                <strong>{d.name}</strong>
+        <h3 className="book-profile__section">
+          人际关系
+          <span>{character.relations.length} 人</span>
+        </h3>
+        {character.relations.length === 0 ? (
+          <p className="muted">尚无固定人事牵绊。</p>
+        ) : (
+          <ul className="codex-achieve-grid book-profile__grid">
+            {character.relations.map((r) => (
+              <li
+                key={`${r.kind}-${r.name}`}
+                className={`codex-achieve codex-achieve--on book-profile__relation book-profile__relation--${r.kind}`}
+              >
+                <strong>
+                  {r.kind} · {r.name}
+                </strong>
+                <em className="book-profile__tag">羁绊 {r.bond}</em>
                 <span>
-                  {d.type} · {d.grade} · 第{m.level}层 · {m.learnedAt}岁得自{m.source}
+                  {r.kind === '仇敌' && r.revengeIn != null ? `寻仇倒计时 ${r.revengeIn} 年` : ''}
+                  {r.note ? `${r.kind === '仇敌' && r.revengeIn != null ? ' · ' : ''}${r.note}` : ''}
+                  {!(r.note || (r.kind === '仇敌' && r.revengeIn != null)) ? '江湖牵绊，一字难尽。' : ''}
                 </span>
               </li>
-            )
-          })}
-        </ul>
-      )}
+            ))}
+          </ul>
+        )}
+      </div>
 
-      <h3>称号列表</h3>
-      {character.titles.length === 0 ? (
-        <p className="muted">尚无江湖名号。</p>
-      ) : (
-        <ul className="title-list">
-          {character.titles.map((t) => {
-            const d = getTitle(t.id)
-            const isPrimary = character.primaryTitleId === t.id
-            return (
-              <li key={t.id}>
-                <div>
-                  <strong>
-                    {d.name}
-                    {isPrimary ? '（主称号）' : ''}
-                  </strong>
-                  <span>
-                    {t.gainedAt}岁 · {d.type} · {d.rarity} · {d.desc}
-                  </span>
-                </div>
-                {!readOnly && !isPrimary && onSetPrimary && (
-                  <button type="button" className="btn ghost tiny" onClick={() => onSetPrimary(t.id)}>
-                    设为主称号
-                  </button>
-                )}
-              </li>
-            )
-          })}
-        </ul>
+      {!profileOnly && (
+        <div className="book-profile book-profile--arts">
+          <h3 className="book-profile__section">
+            武学列表
+            <span>{character.martialArts.length} 门</span>
+          </h3>
+          {character.martialArts.length === 0 ? (
+            <p className="muted">尚不会武，只凭蛮力。</p>
+          ) : (
+            <ul className="codex-achieve-grid book-profile__grid">
+              {character.martialArts.map((m) => {
+                const d = getMartial(m.id)
+                return (
+                  <li
+                    key={m.id}
+                    className={`codex-achieve codex-achieve--on ${rarityClass(martialRarityLabel(d.grade))}`}
+                  >
+                    <strong>{d.name}</strong>
+                    <em className="book-profile__tag">
+                      {d.grade} · 第{m.level}层
+                    </em>
+                    <span>
+                      {d.type} · {m.learnedAt}岁得自{m.source}
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+
+          <h3 className="book-profile__section">
+            称号
+            <span>{character.titles.length} 枚</span>
+          </h3>
+          {character.titles.length === 0 ? (
+            <p className="muted">尚无江湖名号。</p>
+          ) : (
+            <ul className="codex-achieve-grid book-profile__grid">
+              {character.titles.map((t) => {
+                const d = getTitle(t.id)
+                const isPrimary = character.primaryTitleId === t.id
+                return (
+                  <li
+                    key={t.id}
+                    className={`codex-achieve codex-achieve--on ${rarityClass(d.rarity)}${isPrimary ? ' book-profile__primary' : ''}`}
+                  >
+                    <strong>
+                      {d.name}
+                      {isPrimary ? ' · 主' : ''}
+                    </strong>
+                    <em className="book-profile__tag">
+                      {d.rarity} · {d.type}
+                    </em>
+                    <span>
+                      {t.gainedAt}岁获得 · {d.desc}
+                    </span>
+                    {!readOnly && !isPrimary && onSetPrimary && (
+                      <button type="button" className="btn ghost tiny" onClick={() => onSetPrimary(t.id)}>
+                        设为主称号
+                      </button>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </div>
       )}
     </div>
   )

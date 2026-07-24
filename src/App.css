@@ -1031,6 +1031,37 @@ h3 {
   background: var(--paper-lift);
 }
 
+.status-panel--book .book-profile {
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px dashed var(--line);
+}
+
+.status-panel--book .status-panel__head + .book-profile {
+  margin-top: var(--space-3);
+  padding-top: 0;
+  border-top: none;
+}
+
+.status-panel--book .codex-achieve .btn {
+  margin-top: 0.35rem;
+  align-self: flex-start;
+}
+
+.ending-loot.status-panel--book {
+  margin: var(--space-3) 0 var(--space-5);
+  padding: var(--space-4) 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--paper-lift);
+}
+
+.ending-loot .book-profile + .book-profile {
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px dashed var(--line);
+}
+
 .fold-toggle {
   display: inline-flex;
   align-items: center;
