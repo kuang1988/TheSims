@@ -4,6 +4,8 @@ import {
   CLIMAX_BY_EVENT_ID,
   CLIMAX_TITLE_RULES,
   DEATH_TAG_FINE_KEY,
+  ORIGIN_IDS,
+  originAssetPath,
   PORTRAIT_ARCHETYPES,
   type ClimaxKey,
   type GenderKey,
@@ -24,14 +26,9 @@ export function genderKey(gender: Character['gender']): GenderKey {
   return gender === '女' ? 'f' : 'm'
 }
 
-/** 某性别可用的立绘池（少林无女档、峨眉无男档） */
-export function portraitPoolForGender(gender: Character['gender']): PortraitArchetype[] {
-  const g = genderKey(gender)
-  return PORTRAIT_ARCHETYPES.filter((a) => {
-    if (g === 'f' && a === 'shaolin') return false
-    if (g === 'm' && a === 'emei') return false
-    return true
-  })
+/** 某性别可用的立绘池（Phase 18：九原型 × 两性齐全） */
+export function portraitPoolForGender(_gender: Character['gender']): PortraitArchetype[] {
+  return [...PORTRAIT_ARCHETYPES]
 }
 
 export function pickPortraitLook(
@@ -54,6 +51,31 @@ export const PORTRAIT_LABELS: Record<PortraitArchetype, string> = {
   wanderer: '游侠',
 }
 
+/** 入世立绘选择器气质短句 */
+export const PORTRAIT_BLURB: Record<PortraitArchetype, string> = {
+  huashan: '剑意清峻，孤峰一脉',
+  wudang: '太极绵长，云鹤闲步',
+  shaolin: '禅武一体，刚猛沉稳',
+  emei: '柔中藏锋，山月清辉',
+  gaibang: '市井豪气，酒袋仗义',
+  demon: '邪焰森然，红衣夺目',
+  bandit: '刀光草莽，绿林粗犷',
+  civic: '布衣烟火，凡尘烟雨',
+  wanderer: '天涯独行，风尘一笠',
+}
+
+export function originPath(originId: string): string {
+  return originAssetPath(originId)
+}
+
+export function originUrl(originId: string): string {
+  return assetUrl(originPath(originId))
+}
+
+export function isKnownOriginId(id: string): boolean {
+  return ORIGIN_IDS.includes(id)
+}
+
 /** 入世选定后终身沿用；仅手动更换会改 portraitLook */
 export function resolvePortraitArchetype(c: Character): PortraitArchetype {
   const look = c.portraitLook
@@ -65,9 +87,6 @@ export function normalizePortraitLook(
   gender: Character['gender'],
   look: PortraitArchetype,
 ): PortraitArchetype {
-  const g = genderKey(gender)
-  if (look === 'shaolin' && g === 'f') return 'emei'
-  if (look === 'emei' && g === 'm') return 'huashan'
   const pool = portraitPoolForGender(gender)
   return pool.includes(look) ? look : pool[0] ?? 'civic'
 }

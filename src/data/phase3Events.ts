@@ -345,7 +345,7 @@ export const PHASE3_EVENTS: EventDef[] = [
             foeName: '考核长老',
             onWin: {
               setRealm: '先天',
-              grantTitle: 'zhangmen',
+              grantTitle: 'wudang_zhang',
               addFlag: 'wudang_elite',
               queueEvent: { id: 'wudang_zhangmen_offer', delayYears: 4 },
             },
@@ -428,7 +428,7 @@ export const PHASE3_EVENTS: EventDef[] = [
       {
         text: '接任掌门',
         effects: {
-          grantTitle: 'zhangmen',
+          grantTitle: 'wudang_zhang',
           addFlags: ['sect_leader', 'wudang_leader'],
           setRelation: { kind: '师父', bond: 80, note: '武当掌门' },
           queueEvent: { id: 'wudang_finale', delayYears: 5 },
@@ -761,7 +761,7 @@ export const PHASE3_EVENTS: EventDef[] = [
         text: '武学为本，光大少林',
         effects: {
           addFlag: 'shaolin_elite',
-          grantTitle: 'zhangmen',
+          grantTitle: 'shaolin_fangzhang',
           queueEvent: { id: 'shaolin_finale', delayYears: 5 },
         },
         tendencyTags: ['修炼', '冒险'],
@@ -1175,7 +1175,7 @@ export const PHASE3_EVENTS: EventDef[] = [
             onWin: {
               setRealm: '先天',
               addFlag: 'emei_elite',
-              grantTitle: 'zhangmen',
+              grantTitle: 'emei_zhang',
               queueEvent: { id: 'emei_master_succession', delayYears: 4 },
             },
             onLose: {
@@ -1213,7 +1213,7 @@ export const PHASE3_EVENTS: EventDef[] = [
       {
         text: '接任掌门',
         effects: {
-          grantTitle: 'zhangmen',
+          grantTitle: 'emei_zhang',
           addFlags: ['sect_leader', 'emei_leader'],
           setRelation: { kind: '师父', bond: 75, note: '峨眉掌门' },
           queueEvent: { id: 'emei_finale', delayYears: 5 },

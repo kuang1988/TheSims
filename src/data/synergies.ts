@@ -58,6 +58,24 @@ export const SYNERGIES: SynergyDef[] = [
     addFlags: ['synergy_zhansha'],
     queueEvent: { id: 'synergy_zhansha_war', delayYears: 16 },
   },
+  {
+    id: 'biaoxin',
+    name: '镖心护托',
+    desc: '镖骨铜皮配护托之心，护镖之路更稳。',
+    requiredTraits: ['biaogu', 'hutuo'],
+    mods: { 体魄: 6, 心性: 4, 正道声望: 6 },
+    addFlags: ['synergy_biaoxin'],
+    queueEvent: { id: 'p17_synergy_biaoxin', delayYears: 12 },
+  },
+  {
+    id: 'caoshang',
+    name: '漕商双面',
+    desc: '漕帮气息与两本账，码头与账房皆通。',
+    requiredTraits: ['caobang', 'liangbenzhang'],
+    mods: { 财富: 30, 魅力: 4, 心性: -3 },
+    addFlags: ['synergy_caoshang'],
+    queueEvent: { id: 'p17_synergy_caoshang', delayYears: 11 },
+  },
 ]
 
 export function matchSynergies(traitIds: string[]): SynergyDef[] {

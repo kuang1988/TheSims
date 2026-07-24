@@ -742,6 +742,7 @@ describe('Sprint E experience polish', () => {
 
   it('semi majorOnly pause count stays in a readable band', () => {
     const pauses: number[] = []
+    const longLifePauses: number[] = []
     for (const seed of [401, 402, 403, 404, 405, 406, 407, 408]) {
       const c = createBirth(seed)
       const sim = new LifeSimulator(c, seed ^ 99, 'semi', true)
@@ -756,11 +757,14 @@ describe('Sprint E experience polish', () => {
         if (r.died) break
       }
       pauses.push(pause)
+      // 早夭局暂停天然偏少，下限只约束活到壮年的样本
+      if (sim.character.age >= 40) longLifePauses.push(pause)
     }
     const avg = pauses.reduce((a, b) => a + b, 0) / pauses.length
     expect(avg).toBeGreaterThanOrEqual(8)
     expect(avg).toBeLessThanOrEqual(20)
-    expect(Math.min(...pauses)).toBeGreaterThanOrEqual(4)
+    expect(longLifePauses.length).toBeGreaterThanOrEqual(5)
+    expect(Math.min(...longLifePauses)).toBeGreaterThanOrEqual(4)
   })
 })
 

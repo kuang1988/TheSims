@@ -3,8 +3,17 @@
  */
 import { writeFileSync } from 'fs'
 import { EVENTS } from '../src/data/events.ts'
+import {
+  PHASE16_ESCORT_EVENTS,
+  PHASE16_MASTER_EVENTS,
+  PHASE16_FORCE_EVENTS,
+} from '../src/data/phase16Events.ts'
+import { PHASE17_EVENTS } from '../src/data/phase17Events.ts'
 
-const BASELINE = 309
+/** Phase 16 交付基线 */
+const BASELINE_P16 = 559
+/** Phase 17 目标：至少 +60 */
+const TARGET = BASELINE_P16 + 60
 
 const byImp: Record<string, number> = {}
 const byChain: Record<string, number> = {}
@@ -26,15 +35,26 @@ for (const e of EVENTS) {
 const sortEntries = (m: Record<string, number>) =>
   Object.entries(m).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'zh'))
 
+const escortChain = byChain['escort'] ?? 0
+const masterChain = byChain['master'] ?? 0
+const forceChain = byChain['force'] ?? 0
+
 const lines = [
-  '# 事件盘点报告（Phase 12）',
+  '# 事件盘点报告（Phase 17）',
   '',
   `生成时间：${new Date().toISOString()}`,
   '',
   '## 汇总',
-  `- 事件总数：${EVENTS.length}（基线 ${BASELINE}，净增 ${EVENTS.length - BASELINE}，目标 ≥${BASELINE + 50}）`,
+  `- 事件总数：${EVENTS.length}（P16 基线 ${BASELINE_P16}，净增 ${EVENTS.length - BASELINE_P16}，目标 ≥${TARGET}）`,
+  `- Phase 17 本批：${PHASE17_EVENTS.length}`,
   `- needsChoice：${needsChoice}`,
   `- once：${once}`,
+  '',
+  '## Phase 16 薄链（软检）',
+  `- escort chain：${escortChain}（本批 ${PHASE16_ESCORT_EVENTS.length}，目标 ≥28）`,
+  `- master chain：${masterChain}（本批 ${PHASE16_MASTER_EVENTS.length}，目标 ≥28）`,
+  `- force chain：${forceChain}（本批 ${PHASE16_FORCE_EVENTS.length}，目标 ≥18）`,
+  `- 幼年 stage 触达：${byStage['幼年'] ?? 0}`,
   '',
   '## importance',
   ...sortEntries(byImp).map(([k, v]) => `- ${k}：${v}`),
@@ -57,7 +77,13 @@ writeFileSync('event-census-report.md', report, 'utf8')
 console.log(report)
 console.log('\n已写入 event-census-report.md')
 
-if (EVENTS.length < BASELINE + 50) {
-  console.error(`[event-census] 未达 +50 门槛：当前 ${EVENTS.length} < ${BASELINE + 50}`)
+if (EVENTS.length < TARGET) {
+  console.error(`[event-census] 未达门槛：当前 ${EVENTS.length} < ${TARGET}`)
   process.exitCode = 1
+}
+
+if (escortChain < 28 || masterChain < 28 || forceChain < 18) {
+  console.warn(
+    `[event-census] 薄链软检：escort=${escortChain} master=${masterChain} force=${forceChain}`,
+  )
 }

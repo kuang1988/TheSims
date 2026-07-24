@@ -65,4 +65,13 @@ export const TITLES: TitleDef[] = [
   { id: 'panzei', name: '门派叛徒', rarity: '普通', type: '邪道', desc: '背师叛门，人人喊打。' },
   { id: 'fuxing_hao', name: '福星少年', rarity: '普通', type: '趣味', desc: '总有贵人相助。' },
   { id: 'tiandao', name: '天道行者', rarity: '传说', type: '中立', desc: '以己身践行天道。' },
+  // Phase 17
+  { id: 'beilu_biaoshen', name: '北路镖神', rarity: '史诗', type: '中立', desc: '北路镖旗所至，无人敢劫。' },
+  { id: 'matou_wudi', name: '码头无敌', rarity: '稀有', type: '中立', desc: '码头比武，鲜有败绩。' },
+  { id: 'menpai_chuanren', name: '门派传人', rarity: '稀有', type: '职司', desc: '一脉真传在身，门墙认可。' },
+  { id: 'qincha_yuxiang', name: '钦差余响', rarity: '稀有', type: '职司', desc: '钦差已去，威名犹在。' },
+  { id: 'force_lishi', name: '市井力士', rarity: '普通', type: '中立', desc: '臂力过人，市井传名。' },
+  { id: 'escort_xinyu', name: '镖行信誉', rarity: '稀有', type: '正道', desc: '护镖不失，信誉如金。' },
+  { id: 'craft_shengjiang', name: '匠门圣手', rarity: '稀有', type: '中立', desc: '器械巧思，江湖称绝。' },
+  { id: 'night_youxia', name: '夜路游侠', rarity: '稀有', type: '正道', desc: '专走夜路，专救夜困。' },
 ]

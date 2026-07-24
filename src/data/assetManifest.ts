@@ -1,4 +1,6 @@
-/** Phase 11 静态资产清单：立绘 / 高潮卡 / 终局死标 */
+/** Phase 11 静态资产清单：立绘 / 高潮卡 / 终局死标；Phase 19 出身选项卡 */
+
+import { ORIGINS } from './origins'
 
 export type GenderKey = 'm' | 'f'
 export type PortraitArchetype =
@@ -34,6 +36,45 @@ export type ClimaxKey =
   | 'c_relation_disciple'
   | 'c_relation_enemy'
   | 'c_act2_echo'
+  | 'c_escort_entry'
+  | 'c_escort_mid'
+  | 'c_escort_finale'
+  | 'c_master_entry'
+  | 'c_master_mid'
+  | 'c_master_finale'
+  | 'c_force_entry'
+  | 'c_force_mid'
+  | 'c_force_finale'
+
+export type ThinChain = 'escort' | 'master' | 'force'
+
+/** 薄链事件 → 高潮桶启发式（id 表优先；本函数供审计/补表） */
+export function suggestThinChainClimaxKey(
+  chain: ThinChain,
+  id: string,
+  name = '',
+): ClimaxKey {
+  const blob = `${id} ${name}`
+  const finale =
+    /finale|epilogue|graduate|farewell|deliver|reputation|_late|gift|student_leave|seal|break|beilu|旧人|遗训|出师|归隐|成名|罚银|交镖/
+  if (chain === 'escort') {
+    if (/contract|briefing|depart|揭贴|接镖|出城|出关|聘书|点卯|起程/.test(blob)) {
+      return 'c_escort_entry'
+    }
+    if (finale.test(blob)) return 'c_escort_finale'
+    return 'c_escort_mid'
+  }
+  if (chain === 'master') {
+    if (/_meet|_first|拜师|跪求|初见|问剑|首授/.test(blob)) return 'c_master_entry'
+    if (finale.test(blob)) return 'c_master_finale'
+    return 'c_master_mid'
+  }
+  if (/awaken|_train$|wuguan_train|wuguan_stance|武馆|入馆|码头第一|力拔|扎马|站桩/.test(blob)) {
+    return 'c_force_entry'
+  }
+  if (finale.test(blob)) return 'c_force_finale'
+  return 'c_force_mid'
+}
 
 /** 死法精标 → 文件 fineKey */
 export const DEATH_TAG_FINE_KEY: Record<string, string> = {
@@ -73,6 +114,14 @@ export const PORTRAIT_ARCHETYPES: PortraitArchetype[] = [
   'wanderer',
 ]
 
+/** 出身选项卡 id（与 origins.ts 同步） */
+export const ORIGIN_IDS: string[] = ORIGINS.map((o) => o.id)
+
+/** public/assets/origin/o_{id}.webp */
+export function originAssetPath(originId: string): string {
+  return `origin/o_${originId}.webp`
+}
+
 /** 事件 id → 高潮卡 */
 export const CLIMAX_BY_EVENT_ID: Record<string, ClimaxKey> = {
   huashan_finale: 'c_sect_finale',
@@ -88,6 +137,119 @@ export const CLIMAX_BY_EVENT_ID: Record<string, ClimaxKey> = {
   shaolin_sect_war: 'c_sect_war',
   death_sect_martyr: 'c_sect_war',
   mid_sect_fight: 'c_sect_mid',
+  // —— escort 薄链 ——
+  youth_merchant: 'c_escort_mid',
+  escort_ambush: 'c_escort_mid',
+  mid_wealth: 'c_escort_mid',
+  escort_p16_contract: 'c_escort_entry',
+  escort_p16_briefing: 'c_escort_entry',
+  escort_p16_depart: 'c_escort_entry',
+  escort_p16_rain: 'c_escort_mid',
+  escort_p16_inn: 'c_escort_mid',
+  escort_p16_ambush: 'c_escort_mid',
+  escort_p16_deliver: 'c_escort_finale',
+  escort_p16_fail: 'c_escort_mid',
+  escort_p16_betrayal: 'c_escort_mid',
+  escort_p16_reputation: 'c_escort_finale',
+  escort_p16_jade: 'c_escort_mid',
+  escort_p16_jade_truth: 'c_escort_mid',
+  escort_p16_jade_curse: 'c_escort_mid',
+  escort_p16_bounty: 'c_escort_mid',
+  escort_p16_revenge: 'c_escort_mid', // 误绑修正：勿落 relation_enemy
+  escort_p16_river: 'c_escort_mid',
+  escort_p16_snow: 'c_escort_mid',
+  escort_p16_rookie: 'c_escort_mid',
+  escort_p16_poison: 'c_escort_mid',
+  escort_p16_night: 'c_escort_mid',
+  escort_p16_bribe: 'c_escort_mid',
+  escort_p16_wolf: 'c_escort_mid',
+  escort_p16_map: 'c_escort_mid',
+  escort_p16_widow: 'c_escort_mid',
+  escort_p16_rival: 'c_escort_mid',
+  escort_p16_fire: 'c_escort_mid',
+  escort_p16_monk: 'c_escort_mid',
+  escort_p16_epilogue: 'c_escort_finale',
+  escort_p16_late: 'c_escort_finale',
+  escort_p16_secret: 'c_escort_mid',
+  p17_escort_merchant_guard: 'c_escort_mid',
+  p17_title_beilu: 'c_escort_finale',
+  p17_escort_guard_hands: 'c_escort_mid',
+  p17_cart_shield: 'c_escort_mid',
+  p17_trait_biaogu: 'c_escort_mid',
+  p17_synergy_biaoxin: 'c_escort_mid',
+  // —— master 薄链 ——
+  child_master: 'c_master_mid',
+  master_teach: 'c_master_mid',
+  master_farewell: 'c_master_finale',
+  master_p16_meet: 'c_master_entry',
+  master_p16_test: 'c_master_mid',
+  master_p16_first: 'c_master_entry',
+  master_p16_sweep: 'c_master_mid',
+  master_p16_steal: 'c_master_mid',
+  master_p16_mission: 'c_master_mid',
+  master_p16_rival_disciple: 'c_master_mid',
+  master_p16_rescue: 'c_master_mid',
+  master_p16_secret: 'c_master_mid',
+  master_p16_betray: 'c_master_mid',
+  master_p16_duel: 'c_master_mid',
+  master_p16_graduate: 'c_master_finale',
+  master_p16_gift: 'c_master_finale',
+  master_p16_letter: 'c_master_mid',
+  master_p16_farewell: 'c_master_finale',
+  master_p16_student: 'c_master_mid',
+  master_p16_teach: 'c_master_mid',
+  master_p16_student_leave: 'c_master_finale',
+  master_p16_enemy: 'c_master_mid',
+  master_p16_library: 'c_master_mid',
+  master_p16_wedding: 'c_master_mid',
+  master_p16_debt: 'c_master_mid',
+  master_p16_forge: 'c_master_mid',
+  master_p16_debate: 'c_master_mid',
+  master_p16_seal: 'c_master_finale',
+  master_p16_reunion: 'c_master_mid',
+  master_p16_med: 'c_master_mid',
+  master_p16_vow: 'c_master_finale',
+  master_p16_epilogue: 'c_master_finale',
+  master_p16_night: 'c_master_mid',
+  p17_hermit_breath: 'c_master_mid',
+  p17_yinshi_cave: 'c_master_mid',
+  p17_yinshi_return: 'c_master_mid',
+  p17_trait_shimen: 'c_master_mid',
+  // —— force 薄链 ——
+  child_force: 'c_force_mid',
+  wuguan_train: 'c_force_entry',
+  force_p16_awaken: 'c_force_entry',
+  force_p16_train: 'c_force_entry',
+  force_p16_dock: 'c_force_mid',
+  force_p16_bullies: 'c_force_mid',
+  force_p16_challenge: 'c_force_mid',
+  force_p16_iron: 'c_force_mid',
+  force_p16_bridge: 'c_force_mid',
+  force_p16_stone: 'c_force_mid',
+  force_p16_sect: 'c_force_mid',
+  force_p16_rage: 'c_force_mid',
+  force_p16_rope: 'c_force_mid',
+  force_p16_cart: 'c_force_mid',
+  force_p16_mountain: 'c_force_mid',
+  force_p16_wrestle: 'c_force_mid',
+  force_p16_beast: 'c_force_mid',
+  force_p16_army: 'c_force_mid',
+  force_p16_break: 'c_force_finale',
+  force_p16_old: 'c_force_mid',
+  force_p16_hidden: 'c_force_mid',
+  force_p16_epilogue: 'c_force_finale',
+  force_p16_sand: 'c_force_mid',
+  force_p16_rival: 'c_force_mid',
+  p17_title_tiaozhan: 'c_force_mid',
+  p17_dock_short: 'c_force_mid',
+  p17_market_iron: 'c_force_mid',
+  p17_wuguan_stance: 'c_force_entry',
+  p17_wuguan_spar: 'c_force_mid',
+  p17_wuguan_secret: 'c_force_mid',
+  p17_shenli_mill: 'c_force_mid',
+  p17_shenli_challenge: 'c_force_mid',
+  p17_trait_shijing: 'c_force_mid',
+  // —— 非薄链（保持原映射）——
   love_finale: 'c_love_finale',
   rel_lover_fate: 'c_love_finale',
   youth_love_tragedy: 'c_love_tragedy',
@@ -162,6 +324,15 @@ export const CLIMAX_TITLE_RULES: { re: RegExp; key: ClimaxKey }[] = [
   { re: /徒儿|弟子|白刃|背叛/, key: 'c_relation_disciple' },
   { re: /仇敌|旧仇|寻仇/, key: 'c_relation_enemy' },
   { re: /山门余音|晚岁归宿|江湖中场/, key: 'c_act2_echo' },
+  { re: /揭贴|接镖|出城/, key: 'c_escort_entry' },
+  { re: /交镖入城|挂旗开张|金牌镖|镖局/, key: 'c_escort_finale' },
+  { re: /劫镖|护镖|交镖|失镖|镖旗|镖路|黑松劫/, key: 'c_escort_mid' },
+  { re: /拜师|跪求|初见/, key: 'c_master_entry' },
+  { re: /下山|病榻|叛师|真传|师徒决/, key: 'c_master_finale' },
+  { re: /传功|同门|山门试|隐士授/, key: 'c_master_mid' },
+  { re: /武馆|码头第一|入馆/, key: 'c_force_entry' },
+  { re: /力道成名|收手|码头无敌|连破三石/, key: 'c_force_finale' },
+  { re: /擂台|码头|比武|臂力/, key: 'c_force_mid' },
 ]
 
 export const ALL_CLIMAX_KEYS: ClimaxKey[] = [
@@ -186,4 +357,13 @@ export const ALL_CLIMAX_KEYS: ClimaxKey[] = [
   'c_relation_disciple',
   'c_relation_enemy',
   'c_act2_echo',
+  'c_escort_entry',
+  'c_escort_mid',
+  'c_escort_finale',
+  'c_master_entry',
+  'c_master_mid',
+  'c_master_finale',
+  'c_force_entry',
+  'c_force_mid',
+  'c_force_finale',
 ]

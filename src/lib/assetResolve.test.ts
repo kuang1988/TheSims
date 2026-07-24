@@ -3,15 +3,21 @@ import { createBirth } from '../engine/simulator'
 import {
   ALL_CLIMAX_KEYS,
   DEATH_TAG_FINE_KEY,
+  ORIGIN_IDS,
   PORTRAIT_ARCHETYPES,
 } from '../data/assetManifest'
+import { ORIGINS } from '../data/origins'
 import {
   artUrlForLog,
   climaxKeyFromEventId,
   climaxKeyFromHighlight,
   climaxPath,
   endingDeathPath,
+  originPath,
+  originUrl,
+  PORTRAIT_BLURB,
   portraitPath,
+  portraitUrlFor,
   resolvePortraitArchetype,
 } from './assetResolve'
 
@@ -39,15 +45,30 @@ describe('assetResolve', () => {
     expect(createBirth(101, '男').portraitLook).toBe(a.portraitLook)
   })
 
-  it('normalizes invalid gender×look pairs in path', () => {
+  it('keeps full portrait matrix for both genders (Phase 18)', () => {
     const f = { ...createBirth(43, '女'), portraitLook: 'shaolin' as const }
-    expect(portraitPath(f)).toBe('portrait/p_f_emei.webp')
+    expect(portraitPath(f)).toBe('portrait/p_f_shaolin.webp')
     const m = { ...createBirth(44, '男'), portraitLook: 'emei' as const }
-    expect(portraitPath(m)).toBe('portrait/p_m_huashan.webp')
+    expect(portraitPath(m)).toBe('portrait/p_m_emei.webp')
   })
 
   it('covers all portrait archetypes in manifest', () => {
     expect(PORTRAIT_ARCHETYPES.length).toBeGreaterThanOrEqual(9)
+    for (const arch of PORTRAIT_ARCHETYPES) {
+      expect(PORTRAIT_BLURB[arch]).toBeTruthy()
+      expect(portraitUrlFor('男', arch)).toContain(`p_m_${arch}.webp`)
+      expect(portraitUrlFor('女', arch)).toContain(`p_f_${arch}.webp`)
+    }
+  })
+
+  it('maps origin ids to origin asset paths (Phase 19)', () => {
+    expect(ORIGIN_IDS).toEqual(ORIGINS.map((o) => o.id))
+    expect(ORIGIN_IDS).toContain('farmer')
+    expect(ORIGIN_IDS).toContain('yulinying')
+    for (const id of ORIGIN_IDS) {
+      expect(originPath(id)).toBe(`origin/o_${id}.webp`)
+      expect(originUrl(id)).toContain(`origin/o_${id}.webp`)
+    }
   })
 
   it('maps highlight titles and event ids to climax keys', () => {

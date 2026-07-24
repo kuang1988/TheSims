@@ -1037,7 +1037,7 @@ function BackPage({
       </p>
       {onShare && (
         <button type="button" className="btn tiny" onClick={onShare}>
-          下载分享图
+          下载列传页
         </button>
       )}
     </div>

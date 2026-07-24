@@ -9,7 +9,6 @@ import {
   getTrait,
   LifeSimulator,
 } from './engine/simulator'
-import { heartTier } from './lib/utils'
 import {
   formatShareText,
   loadStats,
@@ -47,12 +46,15 @@ import {
   climaxUrlFromHighlight,
   endingDeathUrl,
   normalizePortraitLook,
+  originUrl,
+  PORTRAIT_BLURB,
   PORTRAIT_LABELS,
   portraitPoolForGender,
   portraitUrl,
   portraitUrlFor,
 } from './lib/assetResolve'
 import { matchSynergies } from './data/synergies'
+import { ORIGINS } from './data/origins'
 import type { PortraitArchetype } from './data/assetManifest'
 import type {
   Character,
@@ -160,6 +162,7 @@ export default function App() {
   const [runStats, setRunStats] = useState<RunStats>(() => loadStats())
   const [newAchievements, setNewAchievements] = useState<AchievementDef[]>([])
   const [showBirthExtras, setShowBirthExtras] = useState(false)
+  const [showOriginPicker, setShowOriginPicker] = useState(false)
   const [showEndingLoot, setShowEndingLoot] = useState(false)
   const [showLifePortraitPicker, setShowLifePortraitPicker] = useState(false)
   const [readAsBook, setReadAsBook] = useState(true)
@@ -196,10 +199,11 @@ export default function App() {
   const rollBirth = (
     s: number,
     option: GenderOption = genderOption,
-    opts?: { keepName?: string },
+    opts?: { keepName?: string; lockedOriginId?: string },
   ) => {
     const next = createBirth(s, resolveGender(option), {
       unlockedAchievements: codex.achievements,
+      lockedOriginId: opts?.lockedOriginId,
     })
     const keepRaw = opts?.keepName?.replace(/\s+/g, '')
     if (keepRaw) {
@@ -235,7 +239,21 @@ export default function App() {
   const changeGender = (option: GenderOption) => {
     setGenderOption(option)
     const keep = guardPlayerName(character.name)
-    rollBirth(seed, option, { keepName: keep.ok ? keep.name : undefined })
+    rollBirth(seed, option, {
+      keepName: keep.ok ? keep.name : undefined,
+      lockedOriginId: character.originId,
+    })
+  }
+
+  const applyOrigin = (originId: string) => {
+    const def = ORIGINS.find((o) => o.id === originId)
+    if (!def) return
+    if (def.unlockBy && !codex.achievements.includes(def.unlockBy)) return
+    const keep = guardPlayerName(character.name)
+    rollBirth(seed, genderOption, {
+      keepName: keep.ok ? keep.name : undefined,
+      lockedOriginId: originId,
+    })
   }
 
   const applyPortraitLook = (look: PortraitArchetype) => {
@@ -574,7 +592,7 @@ export default function App() {
               }}
               onShare={() => {
                 void downloadShareCard(openShelfBook.ending, openShelfBook.seed).then(() => {
-                  showToast('已生成分享图', 'ok')
+                  showToast('已生成列传页', 'ok')
                 })
               }}
             />
@@ -607,11 +625,58 @@ export default function App() {
                     onBlur={() => commitCharacterName()}
                   />
                 </label>
-                <p className="lead">
-                  {character.gender} · {origin.name}
-                  <span className="muted">（{origin.desc}）</span>
-                </p>
+                <p className="lead">{character.gender}</p>
               </div>
+            </div>
+
+            <article className="origin-card" aria-label={`出身：${origin.name}`}>
+              <img
+                className="origin-card__img"
+                src={originUrl(origin.id)}
+                alt=""
+                onError={(e) => {
+                  e.currentTarget.classList.add('is-missing')
+                }}
+              />
+              <div className="origin-card__body">
+                <p className="origin-card__eyebrow">出身</p>
+                <h2 className="origin-card__name">{origin.name}</h2>
+                <p className="origin-card__desc">{origin.desc}</p>
+              </div>
+            </article>
+
+            <div className="origin-picker">
+              <button
+                type="button"
+                className="btn birth-extras-toggle origin-picker__toggle"
+                onClick={() => setShowOriginPicker((v) => !v)}
+              >
+                {showOriginPicker ? '收起出身一览' : '更换出身'}
+              </button>
+              {showOriginPicker && (
+                <div className="origin-picker__grid" role="listbox" aria-label="选择出身">
+                  {ORIGINS.map((o) => {
+                    const locked = Boolean(o.unlockBy && !codex.achievements.includes(o.unlockBy))
+                    const active = character.originId === o.id
+                    return (
+                      <button
+                        key={o.id}
+                        type="button"
+                        role="option"
+                        aria-selected={active}
+                        aria-disabled={locked}
+                        disabled={locked}
+                        title={locked ? '未解锁' : o.desc}
+                        className={`origin-picker__item${active ? ' is-active' : ''}${locked ? ' is-locked' : ''}`}
+                        onClick={() => applyOrigin(o.id)}
+                      >
+                        <img src={originUrl(o.id)} alt="" loading="lazy" />
+                        <span>{o.name}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
             </div>
 
             <div className="mode-row gender-row">
@@ -634,6 +699,9 @@ export default function App() {
                 <span className="field-label">立绘</span>
                 <span className="portrait-picker__current">
                   {PORTRAIT_LABELS[normalizePortraitLook(character.gender, character.portraitLook)]}
+                  <em className="portrait-picker__blurb">
+                    {PORTRAIT_BLURB[normalizePortraitLook(character.gender, character.portraitLook)]}
+                  </em>
                 </span>
                 <button type="button" className="btn tiny" onClick={cyclePortraitLook}>
                   换一脸
@@ -655,6 +723,7 @@ export default function App() {
                       <img
                         src={portraitUrlFor(character.gender, look)}
                         alt={PORTRAIT_LABELS[look]}
+                        title={PORTRAIT_BLURB[look]}
                         loading="lazy"
                       />
                       <span>{PORTRAIT_LABELS[look]}</span>
@@ -796,8 +865,8 @@ export default function App() {
         )}
 
         {screen === 'life' && (
-          <section className="life">
-            <aside className="hud">
+          <section className="life life--bookish">
+            <aside className="hud hud--slim">
               <div className="hud__top">
                 <img
                   className="hud__portrait"
@@ -809,87 +878,82 @@ export default function App() {
                 />
                 <div className="hud__identity">
                   <div className="hud__name">{displayName(character)}</div>
-                  {ritualTip && <p className="ritual-banner">{ritualTip}</p>}
-                  <div className="hud__row">
-                    <span>{character.age} 岁</span>
-                    <span>{character.gender}</span>
-                    <span>{character.realm}</span>
-                    <span>战力 {calcForce(character)}</span>
+                  <div className="hud__meta-line">
+                    {character.age} 岁 · {character.realm}
+                    <span className="hud__meta-quiet"> · 战力 {calcForce(character)}</span>
                   </div>
+                  {ritualTip && <p className="ritual-banner ritual-banner--slim">{ritualTip}</p>}
                 </div>
-              </div>
-              <div className="hud__row muted">
-                <span>体魄 {character.attrs.体魄}</span>
-                <span>
-                  心性 {heartTier(character.attrs.心性)}（{character.attrs.心性}）
-                </span>
-              </div>
-              <div className="hud__row muted">
-                <span>银两 {character.wealth}</span>
-                <span>武学 {character.martialArts.length}</span>
-                <span>称号 {character.titles.length}</span>
-                <span>关系 {character.relations.length}</span>
-              </div>
-              {mode === 'auto' && (
-                <label className="fold-toggle">
-                  <input
-                    type="checkbox"
-                    checked={foldLowLogs}
-                    onChange={(e) => setFoldLowLogs(e.target.checked)}
-                  />
-                  折叠日常（只看高潮）
-                </label>
-              )}
-              <div className="hud__portrait-tools">
-                <button
-                  type="button"
-                  className="btn tiny"
-                  onClick={() => setShowLifePortraitPicker((v) => !v)}
-                >
-                  {showLifePortraitPicker ? '收起立绘' : '更换立绘'}
-                </button>
-                {showLifePortraitPicker && (
-                  <div className="portrait-picker__grid portrait-picker__grid--compact">
-                    {portraitChoices.map((look) => {
-                      const active =
-                        normalizePortraitLook(character.gender, character.portraitLook) === look
-                      return (
-                        <button
-                          key={look}
-                          type="button"
-                          className={`portrait-picker__item${active ? ' is-active' : ''}`}
-                          onClick={() => applyPortraitLook(look)}
-                        >
-                          <img src={portraitUrlFor(character.gender, look)} alt="" />
-                          <span>{PORTRAIT_LABELS[look]}</span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-            </aside>
-
-            {showStatus ? (
-              <StatusPanel character={character} onSetPrimary={(id) => {
-                const sim = simRef.current
-                if (!sim) return
-                sim.character.primaryTitleId = id
-                setCharacter(structuredClone(sim.character))
-              }} />
-            ) : (
-              <div className={`log-panel${logFlash ? ' log-panel--flash' : ''}`}>
-                <div className="read-mode-bar">
-                  <label className="fold-toggle">
+                <div className="hud__slim-tools">
+                  <button
+                    type="button"
+                    className="btn tiny"
+                    onClick={() => setShowStatus((v) => !v)}
+                  >
+                    {showStatus ? '返回' : '详况'}
+                  </button>
+                  <label className="hud__book-pref" title="书本阅读（一生一书）">
                     <input
                       type="checkbox"
                       checked={readAsBook}
                       onChange={(e) => setReadAsBook(e.target.checked)}
+                      aria-label="书本阅读"
                     />
-                    书本阅读（一生一书）
+                    <span>书</span>
                   </label>
                 </div>
+              </div>
+            </aside>
 
+            {showStatus ? (
+              <div className="status-drawer">
+                <StatusPanel character={character} onSetPrimary={(id) => {
+                  const sim = simRef.current
+                  if (!sim) return
+                  sim.character.primaryTitleId = id
+                  setCharacter(structuredClone(sim.character))
+                }} />
+                <div className="hud__portrait-tools">
+                  <button
+                    type="button"
+                    className="btn tiny"
+                    onClick={() => setShowLifePortraitPicker((v) => !v)}
+                  >
+                    {showLifePortraitPicker ? '收起立绘' : '更换立绘'}
+                  </button>
+                  {showLifePortraitPicker && (
+                    <div className="portrait-picker__grid portrait-picker__grid--compact">
+                      {portraitChoices.map((look) => {
+                        const active =
+                          normalizePortraitLook(character.gender, character.portraitLook) === look
+                        return (
+                          <button
+                            key={look}
+                            type="button"
+                            className={`portrait-picker__item${active ? ' is-active' : ''}`}
+                            onClick={() => applyPortraitLook(look)}
+                          >
+                            <img src={portraitUrlFor(character.gender, look)} alt="" />
+                            <span>{PORTRAIT_LABELS[look]}</span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+                {mode === 'auto' && (
+                  <label className="fold-toggle">
+                    <input
+                      type="checkbox"
+                      checked={foldLowLogs}
+                      onChange={(e) => setFoldLowLogs(e.target.checked)}
+                    />
+                    折叠日常（只看高潮）
+                  </label>
+                )}
+              </div>
+            ) : (
+              <div className={`log-panel${logFlash ? ' log-panel--flash' : ''}`}>
                 {readAsBook ? (
                   <LifeBook
                     logs={logs}
@@ -902,7 +966,7 @@ export default function App() {
                   <div className="log-stream" ref={logStreamRef}>
                     {mode === 'auto' && foldLowLogs && logs.length !== visibleLogs.length && (
                       <p className="log-fold-hint muted">
-                        已折叠 {logs.length - visibleLogs.length} 条日常，可取消上方勾选查看全文
+                        已折叠 {logs.length - visibleLogs.length} 条日常；详况中可取消「折叠日常」查看全文
                       </p>
                     )}
                     {visibleLogs.map((l, i) => (
@@ -1016,11 +1080,11 @@ export default function App() {
                 className="btn"
                 onClick={() => {
                   void downloadShareCard(ending, seed).then(() => {
-                    showToast('已生成分享图', 'ok')
+                    showToast('已生成列传页', 'ok')
                   })
                 }}
               >
-                下载分享图
+                下载列传页
               </button>
               <button
                 type="button"
@@ -1072,7 +1136,7 @@ export default function App() {
                 startClosed
                 onShare={() => {
                   void downloadShareCard(ending, seed).then(() => {
-                    showToast('已生成分享图', 'ok')
+                    showToast('已生成列传页', 'ok')
                   })
                 }}
               />

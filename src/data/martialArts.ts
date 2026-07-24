@@ -44,4 +44,14 @@ export const MARTIAL_ARTS: MartialArtDef[] = [
   { id: 'mo_shadow', name: '魔影步', type: '轻功', grade: '上乘', forceBonus: 13, tags: ['邪', '轻功'] },
   { id: 'fo_palm', name: '如来神掌残式', type: '拳掌', grade: '绝学', forceBonus: 27, tags: ['正'] },
   { id: 'ice_palm', name: '寒冰绵掌', type: '拳掌', grade: '上乘', forceBonus: 18, tags: ['奇遇'] },
+  // Phase 17
+  { id: 'escort_guard_hands', name: '护镖十二手', type: '拳掌', grade: '中乘', forceBonus: 11, tags: ['商途', '基础'] },
+  { id: 'dock_short_strike', name: '码头短打', type: '拳掌', grade: '下乘', forceBonus: 8, tags: ['基础'] },
+  { id: 'hermit_breath', name: '山门吐纳余绪', type: '内功', grade: '中乘', forceBonus: 10, tags: ['正', '内功'] },
+  { id: 'artisan_tool', name: '匠门器械诀', type: '奇门', grade: '中乘', forceBonus: 9, tags: ['奇门'] },
+  { id: 'yamen_spear', name: '衙门枪棍', type: '奇门', grade: '中乘', forceBonus: 12, tags: ['朝廷'] },
+  { id: 'river_hook', name: '漕河钩索', type: '奇门', grade: '下乘', forceBonus: 7, tags: ['商途'] },
+  { id: 'night_step', name: '夜路潜踪', type: '轻功', grade: '中乘', forceBonus: 9, tags: ['轻功'] },
+  { id: 'market_iron', name: '市井铁臂', type: '外功', grade: '下乘', forceBonus: 8, tags: ['外功'] },
+  { id: 'cart_shield', name: '镖车护盾式', type: '外功', grade: '中乘', forceBonus: 10, tags: ['商途', '外功'] },
 ]

@@ -578,6 +578,7 @@ const STORY_FLAGS = new Set([
   'lover', 'saved_lover', 'lover_safe', 'lost_lover',
   'demon_sect', 'refused_demon', 'spy', 'helped_people', 'robber',
   'escort', 'arena_win', 'cliff_sword', 'has_student', 'sworn',
+  'escort_p16', 'master_p16', 'force_p16', 'force_dock',
   'sect_leader', 'alliance_leader', 'massacre', 'army', 'official',
   'path_chosen',
 ])
@@ -1380,13 +1381,26 @@ export function createBirth(
   options?: {
     lockedTraitIds?: string[]
     unlockedAchievements?: string[]
+    /** 入世时锁定出身（须已解锁）；用于「更换出身」 */
+    lockedOriginId?: string
   },
 ): Character {
   const rng = createRng(seed)
   const gender: '男' | '女' = genderOverride ?? (rng() < 0.5 ? '男' : '女')
   const achievements = options?.unlockedAchievements ?? []
   const originPool = ORIGINS.filter((o) => !o.unlockBy || achievements.includes(o.unlockBy))
-  const origin = (originPool.length ? originPool : ORIGINS)[Math.floor(rng() * (originPool.length || ORIGINS.length))]
+  const lockedOrigin = options?.lockedOriginId
+    ? ORIGINS.find(
+        (o) =>
+          o.id === options.lockedOriginId &&
+          (!o.unlockBy || achievements.includes(o.unlockBy)),
+      )
+    : undefined
+  const origin =
+    lockedOrigin ??
+    (originPool.length ? originPool : ORIGINS)[
+      Math.floor(rng() * (originPool.length || ORIGINS.length))
+    ]
 
   const traitPool = TRAITS.filter((t) => !t.unlockBy || achievements.includes(t.unlockBy))
   const locked = (options?.lockedTraitIds ?? []).filter((id) => traitPool.some((t) => t.id === id))

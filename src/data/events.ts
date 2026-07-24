@@ -6,6 +6,8 @@ import { PHASE7_EVENTS } from './phase7Events'
 import { PHASE8_EVENTS } from './phase8Events'
 import { PHASE10_EVENTS } from './phase10Events'
 import { PHASE12_LIFE_EVENTS } from './phase12LifeEvents'
+import { PHASE16_EVENTS } from './phase16Events'
+import { PHASE17_EVENTS } from './phase17Events'
 import { TRAIT_DRIVE_EVENTS } from './traitDriveEvents'
 
 /**
@@ -3252,4 +3254,6 @@ export const EVENTS: EventDef[] = [
   ...PHASE8_EVENTS,
   ...PHASE10_EVENTS,
   ...PHASE12_LIFE_EVENTS,
+  ...PHASE16_EVENTS,
+  ...PHASE17_EVENTS,
 ]
