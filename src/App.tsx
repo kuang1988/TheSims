@@ -18,17 +18,24 @@ import {
   type RunStats,
 } from './lib/story'
 import {
-  ACHIEVEMENTS,
   codexProgress,
-  listKnownMartial,
-  listKnownTitles,
   loadCodex,
   syncCodexFromEnding,
   type AchievementDef,
   type CodexState,
 } from './lib/meta'
 import { LifeBook } from './components/LifeBook'
+import { HomeScreen } from './components/HomeScreen'
+import { LifeShelf } from './components/LifeShelf'
+import { CodexScreen } from './components/CodexScreen'
 import { downloadShareCard } from './lib/shareCard'
+import {
+  loadShelf,
+  markShelfRead,
+  removeShelfBook,
+  upsertShelfBook,
+  type LifeBookRecord,
+} from './lib/lifeShelf'
 import { primaryDeathTag } from './lib/deathTags'
 import {
   artUrlForLog,
@@ -42,8 +49,6 @@ import {
 } from './lib/assetResolve'
 import { matchSynergies } from './data/synergies'
 import { TRAITS } from './data/traits'
-import { MARTIAL_ARTS } from './data/martialArts'
-import { TITLES } from './data/titles'
 import type { PortraitArchetype } from './data/assetManifest'
 import type {
   Character,
@@ -124,7 +129,7 @@ function AttrBar({ label, value, max = 100 }: { label: string; value: number; ma
 }
 
 export default function App() {
-  const [screen, setScreen] = useState<Screen>('birth')
+  const [screen, setScreen] = useState<Screen>('home')
   const [boot] = useState(createInitialBirth)
   const [seed, setSeed] = useState(boot.seed)
   const [genderOption, setGenderOption] = useState<GenderOption>('随机')
@@ -149,7 +154,6 @@ export default function App() {
   const [ritualTip, setRitualTip] = useState('')
   const [logFlash, setLogFlash] = useState(false)
   const [runStats, setRunStats] = useState<RunStats>(() => loadStats())
-  const [showCodex, setShowCodex] = useState(false)
   const [newAchievements, setNewAchievements] = useState<AchievementDef[]>([])
   const [showSeedRoom, setShowSeedRoom] = useState(false)
   const [seedInput, setSeedInput] = useState('')
@@ -158,6 +162,8 @@ export default function App() {
   const [showLifePortraitPicker, setShowLifePortraitPicker] = useState(false)
   const [readAsBook, setReadAsBook] = useState(true)
   const [endingReadAsBook, setEndingReadAsBook] = useState(true)
+  const [shelfBooks, setShelfBooks] = useState<LifeBookRecord[]>(() => loadShelf())
+  const [openShelfBook, setOpenShelfBook] = useState<LifeBookRecord | null>(null)
 
   const simRef = useRef<LifeSimulator | null>(null)
   const logEndRef = useRef<HTMLDivElement | null>(null)
@@ -290,12 +296,31 @@ export default function App() {
     setShowEndingDetail(false)
     setShowLifeReview(false)
     setReviewClimaxOnly(false)
+    setEndingReadAsBook(true)
     setRunStats(recordRunStats(report))
     const synced = syncCodexFromEnding(report)
     setCodex(synced.codex)
     setNewAchievements(synced.newAchievements)
+    const originLabel = getOrigin(report.character.originId).name
+    setShelfBooks(upsertShelfBook(report, seed, originLabel))
     setScreen('ending')
-  }, [])
+  }, [seed])
+
+  const goHome = () => {
+    setRunning(false)
+    setPending(null)
+    setEnding(null)
+    setOpenShelfBook(null)
+    setShowStatus(false)
+    simRef.current = null
+    setScreen('home')
+  }
+
+  const openShelfBookReader = (book: LifeBookRecord) => {
+    setOpenShelfBook(book)
+    setShelfBooks(markShelfRead(book.id))
+    setScreen('book')
+  }
 
   const appendFromSim = useCallback((sim: LifeSimulator) => {
     setCharacter(structuredClone(sim.character))
@@ -436,7 +461,9 @@ export default function App() {
         </div>
       )}
       <header className="topbar">
-        <div className="brand">武侠人生模拟器</div>
+        <button type="button" className="brand brand--btn" onClick={goHome}>
+          武侠人生模拟器
+        </button>
         {screen === 'life' && (
           <div className="topbar__actions">
             <button type="button" className="btn ghost" onClick={() => setShowStatus((v) => !v)}>
@@ -452,9 +479,84 @@ export default function App() {
             </button>
           </div>
         )}
+        {(screen === 'birth' ||
+          screen === 'ending' ||
+          screen === 'shelf' ||
+          screen === 'book' ||
+          screen === 'codex') && (
+          <div className="topbar__actions">
+            <button type="button" className="btn ghost" onClick={goHome}>
+              大厅
+            </button>
+            {screen !== 'shelf' && (
+              <button
+                type="button"
+                className="btn ghost"
+                onClick={() => {
+                  setOpenShelfBook(null)
+                  setScreen('shelf')
+                }}
+              >
+                我的人生
+              </button>
+            )}
+            {screen !== 'codex' && (
+              <button type="button" className="btn ghost" onClick={() => setScreen('codex')}>
+                成就图鉴
+              </button>
+            )}
+          </div>
+        )}
       </header>
 
       <main className="main">
+        {screen === 'home' && (
+          <HomeScreen
+            shelfCount={shelfBooks.length}
+            onStart={() => setScreen('birth')}
+            onShelf={() => setScreen('shelf')}
+            onCodex={() => setScreen('codex')}
+          />
+        )}
+
+        {screen === 'shelf' && (
+          <LifeShelf
+            books={shelfBooks}
+            onOpen={openShelfBookReader}
+            onBack={goHome}
+            onStart={() => setScreen('birth')}
+            onRemove={(id) => {
+              setShelfBooks(removeShelfBook(id))
+              showToast('已移出书架', 'ok')
+            }}
+          />
+        )}
+
+        {screen === 'codex' && <CodexScreen codex={codex} onBack={goHome} />}
+
+        {screen === 'book' && openShelfBook && (
+          <section className="panel ending-book-wrap shelf-reader">
+            <LifeBook
+              logs={openShelfBook.ending.lifeLog}
+              character={openShelfBook.ending.character}
+              seed={openShelfBook.seed}
+              ending={openShelfBook.ending}
+              originName={openShelfBook.originName}
+              mode="reading"
+              realisticFlip
+              onBack={() => {
+                setOpenShelfBook(null)
+                setScreen('shelf')
+              }}
+              onShare={() => {
+                void downloadShareCard(openShelfBook.ending, openShelfBook.seed).then(() => {
+                  showToast('已生成分享图', 'ok')
+                })
+              }}
+            />
+          </section>
+        )}
+
         {screen === 'birth' && (
           <section className="panel birth">
             <p className="eyebrow">入世之前 · 天命已定</p>
@@ -643,8 +745,8 @@ export default function App() {
               <button type="button" className="btn" onClick={() => setShowSeedRoom((v) => !v)}>
                 {showSeedRoom ? '收起种子房' : '种子房'}
               </button>
-              <button type="button" className="btn" onClick={() => setShowCodex((v) => !v)}>
-                {showCodex ? '收起图鉴' : '图鉴'}
+              <button type="button" className="btn" onClick={() => setScreen('codex')}>
+                成就图鉴
               </button>
             </div>
             {showSeedRoom && (
@@ -690,7 +792,6 @@ export default function App() {
                 )}
               </div>
             )}
-            {showCodex && <CodexPanel codex={codex} />}
           </section>
         )}
 
@@ -791,7 +892,7 @@ export default function App() {
 
                 {readAsBook ? (
                   <LifeBook
-                    logs={visibleLogs}
+                    logs={logs}
                     character={character}
                     seed={seed}
                     originName={origin.name}
@@ -1001,6 +1102,7 @@ export default function App() {
                   ending={ending}
                   originName={getOrigin(ending.character.originId).name}
                   mode="reading"
+                  realisticFlip
                   onShare={() => {
                     void downloadShareCard(ending, seed).then(() => {
                       showToast('已生成分享图', 'ok')
@@ -1166,89 +1268,26 @@ export default function App() {
               >
                 再开一局
               </button>
-              <button type="button" className="btn" onClick={() => setShowCodex((v) => !v)}>
-                {showCodex ? '收起图鉴' : '成就图鉴'}
+              <button
+                type="button"
+                className="btn"
+                onClick={() => {
+                  setScreen('shelf')
+                }}
+              >
+                我的人生
+              </button>
+              <button type="button" className="btn" onClick={goHome}>
+                返回大厅
+              </button>
+              <button type="button" className="btn" onClick={() => setScreen('codex')}>
+                成就图鉴
               </button>
             </div>
-            {showCodex && <CodexPanel codex={codex} />}
           </section>
         )}
 
       </main>
-    </div>
-  )
-}
-
-function CodexPanel({ codex }: { codex: CodexState }) {
-  const progress = codexProgress(codex)
-  const unlocked = ACHIEVEMENTS.filter((a) => codex.achievements.includes(a.id))
-  const locked = ACHIEVEMENTS.filter((a) => !codex.achievements.includes(a.id))
-  const martials = listKnownMartial(codex)
-  const titles = listKnownTitles(codex)
-  const rarityClass = (r: string) =>
-    r === '传说' ? 'rarity-legend' : r === '史诗' ? 'rarity-epic' : r === '稀有' ? 'rarity-rare' : 'rarity-common'
-  return (
-    <div className="codex-panel">
-      <h3>成就与图鉴</h3>
-      <p className="meta">
-        成就 {progress.achievements} · 武学 {progress.martialArts} · 称号 {progress.titles} · 结局标签{' '}
-        {progress.endings}
-      </p>
-      <h4>已解锁成就</h4>
-      {unlocked.length === 0 ? (
-        <p className="muted">尚未解锁成就，走完一局人生后结算。</p>
-      ) : (
-        <ul className="trait-list compact">
-          {unlocked.map((a) => (
-            <li key={a.id}>
-              <strong>{a.name}</strong>
-              <span>{a.desc}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-      <h4>未解锁</h4>
-      <ul className="trait-list compact">
-        {locked.map((a) => (
-          <li key={a.id}>
-            <strong>{a.name}</strong>
-            <span>？？？</span>
-          </li>
-        ))}
-      </ul>
-      <h4>武学图鉴（{martials.length}/{MARTIAL_ARTS.length}）</h4>
-      <ul className="codex-grid">
-        {MARTIAL_ARTS.map((m) => {
-          const known = codex.martialArts.includes(m.id)
-          return (
-            <li key={m.id} className={`codex-chip ${known ? rarityClass(m.grade === '神功' || m.grade === '绝学' ? '传说' : m.grade === '上乘' ? '史诗' : '普通') : 'codex-chip--locked'}`}>
-              {known ? `${m.name}·${m.grade}` : '???'}
-            </li>
-          )
-        })}
-      </ul>
-      <h4>称号图鉴（{titles.length}/{TITLES.length}）</h4>
-      <ul className="codex-grid">
-        {TITLES.map((t) => {
-          const known = codex.titles.includes(t.id)
-          return (
-            <li key={t.id} className={`codex-chip ${known ? rarityClass(t.rarity) : 'codex-chip--locked'}`}>
-              {known ? t.name : '???'}
-            </li>
-          )
-        })}
-      </ul>
-      <h4>见过的结局标签</h4>
-      <ul className="codex-grid">
-        {progress.endingPool.map((tag) => {
-          const known = codex.endings.includes(tag)
-          return (
-            <li key={tag} className={`codex-chip ${known ? 'rarity-rare' : 'codex-chip--locked'}`}>
-              {known ? tag : '???'}
-            </li>
-          )
-        })}
-      </ul>
     </div>
   )
 }

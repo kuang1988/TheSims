@@ -257,7 +257,7 @@ export interface PendingChoice {
   choices: ChoiceDef[]
 }
 
-export type Screen = 'birth' | 'life' | 'status' | 'ending'
+export type Screen = 'home' | 'birth' | 'life' | 'status' | 'ending' | 'shelf' | 'book' | 'codex'
 
 export interface EndingReport {
   deathReason: string

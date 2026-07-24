@@ -19,12 +19,14 @@ export interface BookPage {
 }
 
 const MAX_ENTRIES_PER_SPREAD = 3
+/** 目录页每页条数，避免单页过长 */
+const TOC_ENTRIES_PER_PAGE = 14
 
 function isClimaxEntry(l: LogEntry): boolean {
   return l.importance >= 4 || l.kind === 'death'
 }
 
-/** 将一生日志编成书页：封面 → 目录 → 内页/插页 → 封底 */
+/** 将一生日志编成书页：封面 → 目录（与高潮页一一对应）→ 内页/插页 → 封底 */
 export function buildLifeBookPages(
   logs: LogEntry[],
   character: Character,
@@ -34,32 +36,16 @@ export function buildLifeBookPages(
     originName?: string
   },
 ): BookPage[] {
-  const pages: BookPage[] = []
   const ending = opts?.ending ?? null
-
-  pages.push({
-    id: 'cover',
-    kind: 'cover',
-    title: '封面',
-    entries: [],
-    summary: `${character.name} · ${character.gender}${opts?.originName ? ` · ${opts.originName}` : ''}`,
-  })
-
-  const climaxes = logs.filter((l) => l.importance >= 4 && l.kind !== 'death').slice(0, 8)
-  pages.push({
-    id: 'toc',
-    kind: 'toc',
-    title: '目录',
-    entries: climaxes,
-  })
+  const content: BookPage[] = []
 
   let buf: LogEntry[] = []
   const flushSpread = () => {
     if (!buf.length) return
     const age = buf[0]?.age
     const title = buf.length === 1 ? buf[0].title : `${age}岁 · 数事`
-    pages.push({
-      id: `spread-${pages.length}-${age}-${buf[0]?.title}`,
+    content.push({
+      id: `spread-${content.length}-${age}-${buf[0]?.title}`,
       kind: 'spread',
       title,
       age,
@@ -72,8 +58,8 @@ export function buildLifeBookPages(
   for (const l of logs) {
     if (l.kind === 'death') {
       flushSpread()
-      pages.push({
-        id: `death-${l.age}`,
+      content.push({
+        id: `death-${content.length}-${l.age}`,
         kind: 'climax',
         title: l.title,
         age: l.age,
@@ -84,8 +70,8 @@ export function buildLifeBookPages(
     }
     if (isClimaxEntry(l)) {
       flushSpread()
-      pages.push({
-        id: `climax-${l.age}-${l.title}`,
+      content.push({
+        id: `climax-${content.length}-${l.age}-${l.title}`,
         kind: 'climax',
         title: l.title,
         age: l.age,
@@ -94,7 +80,6 @@ export function buildLifeBookPages(
       })
       continue
     }
-    // 同岁可合并；跨岁或满页则翻篇
     if (buf.length && (buf[0].age !== l.age || buf.length >= MAX_ENTRIES_PER_SPREAD)) {
       flushSpread()
     }
@@ -102,6 +87,42 @@ export function buildLifeBookPages(
   }
   flushSpread()
 
+  // 目录与正文高潮页同源，避免漏录（含终局陨落）
+  const climaxes = content
+    .filter((p) => p.kind === 'climax')
+    .map((p) => p.entries[0])
+    .filter((e): e is LogEntry => !!e)
+
+  const pages: BookPage[] = []
+  pages.push({
+    id: 'cover',
+    kind: 'cover',
+    title: '封面',
+    entries: [],
+    summary: `${character.name} · ${character.gender}${opts?.originName ? ` · ${opts.originName}` : ''}`,
+  })
+
+  if (!climaxes.length) {
+    pages.push({
+      id: 'toc',
+      kind: 'toc',
+      title: '目录',
+      entries: [],
+    })
+  } else {
+    const totalParts = Math.ceil(climaxes.length / TOC_ENTRIES_PER_PAGE)
+    for (let i = 0; i < climaxes.length; i += TOC_ENTRIES_PER_PAGE) {
+      const part = Math.floor(i / TOC_ENTRIES_PER_PAGE) + 1
+      pages.push({
+        id: `toc-${part}`,
+        kind: 'toc',
+        title: totalParts > 1 ? `目录 ${part}/${totalParts}` : '目录',
+        entries: climaxes.slice(i, i + TOC_ENTRIES_PER_PAGE),
+      })
+    }
+  }
+
+  pages.push(...content)
   pages.push({
     id: 'back',
     kind: 'back',
@@ -116,8 +137,26 @@ export function buildLifeBookPages(
 
 export function pageLabel(page: BookPage, index: number, total: number): string {
   if (page.kind === 'cover') return '封面'
-  if (page.kind === 'toc') return '目录'
+  if (page.kind === 'toc') return page.title || '目录'
   if (page.kind === 'back') return '封底'
   if (page.age != null) return `第 ${index + 1} 页 · ${page.age}岁`
   return `第 ${index + 1} 页 / ${total}`
+}
+
+/** 目录跳转：按岁数+标题+正文/事件 id 定位高潮页，避免同名条目跳错 */
+export function findClimaxPageIndex(pages: BookPage[], entry: LogEntry): number {
+  // 优先 eventId 精确匹配
+  if (entry.eventId) {
+    const byId = pages.findIndex(
+      (p) => p.kind === 'climax' && p.entries[0]?.eventId === entry.eventId,
+    )
+    if (byId >= 0) return byId
+  }
+  return pages.findIndex((p) => {
+    if (p.kind !== 'climax') return false
+    const e = p.entries[0]
+    if (!e) return false
+    if (e.age !== entry.age || e.title !== entry.title) return false
+    return e.text === entry.text
+  })
 }
