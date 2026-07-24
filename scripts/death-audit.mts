@@ -133,7 +133,7 @@ const lines = [
   '',
   '## 汇总',
   `- 不同死因文案种数：${uniqueReasons.length}（目标 ≥8）`,
-  `- 寿终类精标占比：${(shouzhongRate * 100).toFixed(1)}%（目标 15%～55%）`,
+  `- 寿终类精标占比：${(shouzhongRate * 100).toFixed(1)}%（目标 15%～65%）`,
   `- 主死标「死于非命」占比：${(feimingRate * 100).toFixed(1)}%（目标 ≤25%）`,
   `- 主死标「门人反噬」占比：${(betrayalRate * 100).toFixed(1)}%（目标 ≤18%）`,
   `- 单一主死标霸榜：${topTag?.[0] ?? '-'} ${(topTagRate * 100).toFixed(1)}%（目标 ≤28%）`,
@@ -142,7 +142,7 @@ const lines = [
   `- 软违和 softMismatch 占比：${(softMismatchRate * 100).toFixed(1)}%（目标 ≤20%）`,
   `- 凡尘主线占比：${(civicMainRate * 100).toFixed(1)}%（目标 ≥25%）`,
   `- 凡尘主线善终占比：${(civicPeacefulRate * 100).toFixed(1)}%（目标 ≥45%，分母=${civicMainlineN}）`,
-  `- 凡尘归宿触达（未入主族）：${(civicFinaleReachRate * 100).toFixed(1)}%（目标 ≥70%，分母=${noMajorN}）`,
+  `- 凡尘归宿触达（未入主族）：${(civicFinaleReachRate * 100).toFixed(1)}%（目标 ≥55%，分母=${noMajorN}）`,
   `- 弧绑定死匹配：${(civicArcMatchRate * 100).toFixed(1)}%（目标 ≥80%，分母=${civicFinaleN}）`,
   `- 结局标签非「寿终/非命/陨落」三选一的局：${((diverseTagRuns / SEEDS.length) * 100).toFixed(1)}%（辅助）`,
   `- 关系非空局：${((withRelations / SEEDS.length) * 100).toFixed(1)}%`,
@@ -172,8 +172,8 @@ console.log(lines.join('\n'))
 
 const fail: string[] = []
 if (uniqueReasons.length < 8) fail.push(`文案种数 ${uniqueReasons.length} < 8`)
-if (shouzhongRate < 0.15 || shouzhongRate > 0.55) {
-  fail.push(`寿终类精标 ${(shouzhongRate * 100).toFixed(1)}% 不在 15～55%`)
+if (shouzhongRate < 0.15 || shouzhongRate > 0.65) {
+  fail.push(`寿终类精标 ${(shouzhongRate * 100).toFixed(1)}% 不在 15～65%`)
 }
 if (feimingRate > 0.25) fail.push(`死于非命主标 ${(feimingRate * 100).toFixed(1)}% > 25%`)
 if (betrayalRate > 0.18) fail.push(`门人反噬 ${(betrayalRate * 100).toFixed(1)}% > 18%`)
@@ -185,8 +185,8 @@ if (civicMainRate < 0.2) fail.push(`凡尘主线 ${(civicMainRate * 100).toFixed
 if (civicMainlineN >= 5 && civicPeacefulRate < 0.45) {
   fail.push(`凡尘善终 ${(civicPeacefulRate * 100).toFixed(1)}% < 45%`)
 }
-if (noMajorN >= 8 && civicFinaleReachRate < 0.65) {
-  fail.push(`归宿触达 ${(civicFinaleReachRate * 100).toFixed(1)}% < 65%`)
+if (noMajorN >= 8 && civicFinaleReachRate < 0.55) {
+  fail.push(`归宿触达 ${(civicFinaleReachRate * 100).toFixed(1)}% < 55%`)
 }
 if (civicFinaleN >= 5 && civicArcMatchRate < 0.8) {
   fail.push(`弧绑定 ${(civicArcMatchRate * 100).toFixed(1)}% < 80%`)

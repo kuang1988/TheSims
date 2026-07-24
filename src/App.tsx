@@ -27,12 +27,24 @@ import {
   type AchievementDef,
   type CodexState,
 } from './lib/meta'
+import { LifeBook } from './components/LifeBook'
 import { downloadShareCard } from './lib/shareCard'
 import { primaryDeathTag } from './lib/deathTags'
+import {
+  artUrlForLog,
+  climaxUrlFromHighlight,
+  endingDeathUrl,
+  normalizePortraitLook,
+  PORTRAIT_LABELS,
+  portraitPoolForGender,
+  portraitUrl,
+  portraitUrlFor,
+} from './lib/assetResolve'
 import { matchSynergies } from './data/synergies'
 import { TRAITS } from './data/traits'
 import { MARTIAL_ARTS } from './data/martialArts'
 import { TITLES } from './data/titles'
+import type { PortraitArchetype } from './data/assetManifest'
 import type {
   Character,
   ChoiceDef,
@@ -143,6 +155,9 @@ export default function App() {
   const [seedInput, setSeedInput] = useState('')
   const [showBirthExtras, setShowBirthExtras] = useState(false)
   const [showEndingLoot, setShowEndingLoot] = useState(false)
+  const [showLifePortraitPicker, setShowLifePortraitPicker] = useState(false)
+  const [readAsBook, setReadAsBook] = useState(true)
+  const [endingReadAsBook, setEndingReadAsBook] = useState(true)
 
   const simRef = useRef<LifeSimulator | null>(null)
   const logEndRef = useRef<HTMLDivElement | null>(null)
@@ -210,6 +225,30 @@ export default function App() {
     setGenderOption(option)
     rollBirth(seed, option)
   }
+
+  const applyPortraitLook = (look: PortraitArchetype) => {
+    const next = normalizePortraitLook(character.gender, look)
+    setCharacter((c) => ({ ...c, portraitLook: next }))
+    if (simRef.current) simRef.current.character.portraitLook = next
+    if (ending) {
+      setEnding({
+        ...ending,
+        character: { ...ending.character, portraitLook: next },
+      })
+    }
+  }
+
+  const cyclePortraitLook = () => {
+    const pool = portraitPoolForGender(character.gender)
+    const cur = normalizePortraitLook(character.gender, character.portraitLook)
+    const i = Math.max(0, pool.indexOf(cur))
+    applyPortraitLook(pool[(i + 1) % pool.length] ?? 'civic')
+  }
+
+  const portraitChoices = useMemo(
+    () => portraitPoolForGender(character.gender),
+    [character.gender],
+  )
 
   const origin = useMemo(() => getOrigin(character.originId), [character.originId])
   const traits = useMemo(() => character.traitIds.map(getTrait), [character.traitIds])
@@ -368,6 +407,15 @@ export default function App() {
     )
   }, [ending, reviewClimaxOnly])
 
+  const endingDeathArt = useMemo(
+    () => (ending ? endingDeathUrl(ending.deathReason, ending.character) : null),
+    [ending],
+  )
+  const endingPortraitArt = useMemo(
+    () => (ending ? portraitUrl(ending.character) : null),
+    [ending],
+  )
+
   const copyEnding = async () => {
     if (!ending) return
     const text = formatShareText(ending, seed)
@@ -410,11 +458,23 @@ export default function App() {
         {screen === 'birth' && (
           <section className="panel birth">
             <p className="eyebrow">入世之前 · 天命已定</p>
-            <h1>{character.name}</h1>
-            <p className="lead">
-              {character.gender} · {origin.name}
-              <span className="muted">（{origin.desc}）</span>
-            </p>
+            <div className="birth-hero">
+              <img
+                className="birth-hero__portrait"
+                src={portraitUrl(character)}
+                alt=""
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none'
+                }}
+              />
+              <div className="birth-hero__copy">
+                <h1>{character.name}</h1>
+                <p className="lead">
+                  {character.gender} · {origin.name}
+                  <span className="muted">（{origin.desc}）</span>
+                </p>
+              </div>
+            </div>
 
             <div className="mode-row gender-row">
               <span className="field-label">性别</span>
@@ -429,6 +489,42 @@ export default function App() {
                   {g}
                 </label>
               ))}
+            </div>
+
+            <div className="portrait-picker">
+              <div className="portrait-picker__bar">
+                <span className="field-label">立绘</span>
+                <span className="portrait-picker__current">
+                  {PORTRAIT_LABELS[normalizePortraitLook(character.gender, character.portraitLook)]}
+                </span>
+                <button type="button" className="btn tiny" onClick={cyclePortraitLook}>
+                  换一脸
+                </button>
+              </div>
+              <div className="portrait-picker__grid" role="listbox" aria-label="选择立绘">
+                {portraitChoices.map((look) => {
+                  const active =
+                    normalizePortraitLook(character.gender, character.portraitLook) === look
+                  return (
+                    <button
+                      key={look}
+                      type="button"
+                      role="option"
+                      aria-selected={active}
+                      className={`portrait-picker__item${active ? ' is-active' : ''}`}
+                      onClick={() => applyPortraitLook(look)}
+                    >
+                      <img
+                        src={portraitUrlFor(character.gender, look)}
+                        alt={PORTRAIT_LABELS[look]}
+                        loading="lazy"
+                      />
+                      <span>{PORTRAIT_LABELS[look]}</span>
+                    </button>
+                  )
+                })}
+              </div>
+              <p className="meta portrait-picker__hint">点选缩略图更换；入世后不会因门派自动换脸。</p>
             </div>
 
             <div className="birth-traits">
@@ -601,13 +697,25 @@ export default function App() {
         {screen === 'life' && (
           <section className="life">
             <aside className="hud">
-              <div className="hud__name">{displayName(character)}</div>
-              {ritualTip && <p className="ritual-banner">{ritualTip}</p>}
-              <div className="hud__row">
-                <span>{character.age} 岁</span>
-                <span>{character.gender}</span>
-                <span>{character.realm}</span>
-                <span>战力 {calcForce(character)}</span>
+              <div className="hud__top">
+                <img
+                  className="hud__portrait"
+                  src={portraitUrl(character)}
+                  alt=""
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none'
+                  }}
+                />
+                <div className="hud__identity">
+                  <div className="hud__name">{displayName(character)}</div>
+                  {ritualTip && <p className="ritual-banner">{ritualTip}</p>}
+                  <div className="hud__row">
+                    <span>{character.age} 岁</span>
+                    <span>{character.gender}</span>
+                    <span>{character.realm}</span>
+                    <span>战力 {calcForce(character)}</span>
+                  </div>
+                </div>
               </div>
               <div className="hud__row muted">
                 <span>体魄 {character.attrs.体魄}</span>
@@ -631,6 +739,34 @@ export default function App() {
                   折叠日常（只看高潮）
                 </label>
               )}
+              <div className="hud__portrait-tools">
+                <button
+                  type="button"
+                  className="btn tiny"
+                  onClick={() => setShowLifePortraitPicker((v) => !v)}
+                >
+                  {showLifePortraitPicker ? '收起立绘' : '更换立绘'}
+                </button>
+                {showLifePortraitPicker && (
+                  <div className="portrait-picker__grid portrait-picker__grid--compact">
+                    {portraitChoices.map((look) => {
+                      const active =
+                        normalizePortraitLook(character.gender, character.portraitLook) === look
+                      return (
+                        <button
+                          key={look}
+                          type="button"
+                          className={`portrait-picker__item${active ? ' is-active' : ''}`}
+                          onClick={() => applyPortraitLook(look)}
+                        >
+                          <img src={portraitUrlFor(character.gender, look)} alt="" />
+                          <span>{PORTRAIT_LABELS[look]}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
             </aside>
 
             {showStatus ? (
@@ -642,31 +778,70 @@ export default function App() {
               }} />
             ) : (
               <div className={`log-panel${logFlash ? ' log-panel--flash' : ''}`}>
-                <div className="log-stream" ref={logStreamRef}>
-                  {mode === 'auto' && foldLowLogs && logs.length !== visibleLogs.length && (
-                    <p className="log-fold-hint muted">
-                      已折叠 {logs.length - visibleLogs.length} 条日常，可取消上方勾选查看全文
-                    </p>
-                  )}
-                  {visibleLogs.map((l, i) => (
-                    <article
-                      key={`${l.age}-${i}-${l.title}`}
-                      className={`log log--${l.kind} imp-${l.importance}${l.importance >= 4 ? ' log--climax' : ''}`}
-                    >
-                      <header>
-                        <span className="log__age">{l.age}岁</span>
-                        <strong>{l.title}</strong>
-                      </header>
-                      <p>{l.text}</p>
-                    </article>
-                  ))}
-                  <div ref={logEndRef} />
+                <div className="read-mode-bar">
+                  <label className="fold-toggle">
+                    <input
+                      type="checkbox"
+                      checked={readAsBook}
+                      onChange={(e) => setReadAsBook(e.target.checked)}
+                    />
+                    书本阅读（一生一书）
+                  </label>
                 </div>
+
+                {readAsBook ? (
+                  <LifeBook
+                    logs={visibleLogs}
+                    character={character}
+                    seed={seed}
+                    originName={origin.name}
+                    mode="live"
+                  />
+                ) : (
+                  <div className="log-stream" ref={logStreamRef}>
+                    {mode === 'auto' && foldLowLogs && logs.length !== visibleLogs.length && (
+                      <p className="log-fold-hint muted">
+                        已折叠 {logs.length - visibleLogs.length} 条日常，可取消上方勾选查看全文
+                      </p>
+                    )}
+                    {visibleLogs.map((l, i) => (
+                      <LifeLogArticle
+                        key={`${l.age}-${i}-${l.title}`}
+                        log={l}
+                        character={character}
+                      />
+                    ))}
+                    <div ref={logEndRef} />
+                  </div>
+                )}
 
                 {pending && (
                   <div className="choice-box">
                     <h3>如何抉择？</h3>
                     <p className="choice-box__hint">此岔路口将改写后半生，请择一路。</p>
+                    {(() => {
+                      const pendingArt = artUrlForLog(
+                        {
+                          age: character.age,
+                          kind: 'event',
+                          title: pending.event.name,
+                          text: pending.event.text,
+                          importance: pending.event.importance,
+                          eventId: pending.event.id,
+                        },
+                        character,
+                      )
+                      return pendingArt ? (
+                        <img
+                          className="choice-box__art"
+                          src={pendingArt}
+                          alt=""
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none'
+                          }}
+                        />
+                      ) : null
+                    })()}
                     <div className="choice-list">
                       {pending.choices.map((ch, i) => (
                         <button key={i} type="button" className="btn choice" onClick={() => choose(ch)}>
@@ -698,16 +873,49 @@ export default function App() {
         {screen === 'ending' && ending && (
           <section className="panel ending">
             <p className="eyebrow">尘埃落定</p>
-            <p className="death-tag">{primaryDeathTag(ending.deathReason, ending.character)}</p>
-            <h1 className="death">{ending.deathReason}</h1>
-            <p className="ending-who">{displayName(ending.character)}</p>
-            <p className="mainline-tag">本局主线 · {ending.mainline}</p>
-            <div className="tags">
-              {ending.endingTags.map((t) => (
-                <span key={t} className={t === primaryDeathTag(ending.deathReason, ending.character) ? 'tag-primary' : ''}>
-                  {t}
-                </span>
-              ))}
+            <div className="ending-hero">
+              <div className="ending-hero__art">
+                {endingDeathArt && (
+                  <img
+                    className="ending-hero__death"
+                    src={endingDeathArt}
+                    alt=""
+                    loading="eager"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none'
+                    }}
+                  />
+                )}
+              </div>
+              <div className="ending-hero__copy">
+                {endingPortraitArt && (
+                  <img
+                    className="ending-hero__portrait"
+                    src={endingPortraitArt}
+                    alt=""
+                    loading="eager"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none'
+                    }}
+                  />
+                )}
+                <p className="death-tag">{primaryDeathTag(ending.deathReason, ending.character)}</p>
+                <h1 className="death">{ending.deathReason}</h1>
+                <p className="ending-who">{displayName(ending.character)}</p>
+                <p className="mainline-tag">本局主线 · {ending.mainline}</p>
+                <div className="tags">
+                  {ending.endingTags.map((t) => (
+                    <span
+                      key={t}
+                      className={
+                        t === primaryDeathTag(ending.deathReason, ending.character) ? 'tag-primary' : ''
+                      }
+                    >
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              </div>
             </div>
             <p className="summary ending-summary-lead">{ending.summary}</p>
             <p className="score">本局评分 {ending.score}</p>
@@ -720,8 +928,9 @@ export default function App() {
                 type="button"
                 className="btn"
                 onClick={() => {
-                  downloadShareCard(ending, seed)
-                  showToast('已生成分享图', 'ok')
+                  void downloadShareCard(ending, seed).then(() => {
+                    showToast('已生成分享图', 'ok')
+                  })
                 }}
               >
                 下载分享图
@@ -731,20 +940,31 @@ export default function App() {
             <div className="cta-row ending-inspect">
               <button
                 type="button"
-                className={`btn ${showLifeReview ? 'primary' : ''}`}
+                className={`btn ${endingReadAsBook ? 'primary' : ''}`}
+                onClick={() => setEndingReadAsBook(true)}
+              >
+                翻书回顾
+              </button>
+              <button
+                type="button"
+                className={`btn ${!endingReadAsBook && showLifeReview ? 'primary' : ''}`}
                 onClick={() => {
-                  setShowLifeReview((v) => !v)
-                  if (!showLifeReview) setShowEndingDetail(false)
+                  setEndingReadAsBook(false)
+                  setShowLifeReview(true)
+                  setShowEndingDetail(false)
                 }}
               >
-                {showLifeReview ? '收起一生回顾' : '回顾一生'}
+                卷轴回顾
               </button>
               <button
                 type="button"
                 className={`btn ${showEndingDetail ? 'primary' : ''}`}
                 onClick={() => {
                   setShowEndingDetail((v) => !v)
-                  if (!showEndingDetail) setShowLifeReview(false)
+                  if (!showEndingDetail) {
+                    setShowLifeReview(false)
+                    setEndingReadAsBook(false)
+                  }
                 }}
               >
                 {showEndingDetail ? '收起详细属性' : '查看详细属性'}
@@ -772,10 +992,28 @@ export default function App() {
               </div>
             )}
 
-            {showLifeReview && (
+            {endingReadAsBook && (
+              <div className="ending-book-wrap">
+                <LifeBook
+                  logs={ending.lifeLog}
+                  character={ending.character}
+                  seed={seed}
+                  ending={ending}
+                  originName={getOrigin(ending.character.originId).name}
+                  mode="reading"
+                  onShare={() => {
+                    void downloadShareCard(ending, seed).then(() => {
+                      showToast('已生成分享图', 'ok')
+                    })
+                  }}
+                />
+              </div>
+            )}
+
+            {!endingReadAsBook && showLifeReview && (
               <div className="life-review">
                 <div className="life-review__head">
-                  <h2>一生回顾</h2>
+                  <h2>一生回顾（卷轴）</h2>
                   <label className="fold-toggle">
                     <input
                       type="checkbox"
@@ -794,16 +1032,11 @@ export default function App() {
                     <p className="muted">暂无记载可回顾。</p>
                   ) : (
                     reviewLogs.map((l, i) => (
-                      <article
+                      <LifeLogArticle
                         key={`review-${l.age}-${i}-${l.title}`}
-                        className={`log log--${l.kind} imp-${l.importance}${l.importance >= 4 ? ' log--climax' : ''}`}
-                      >
-                        <header>
-                          <span className="log__age">{l.age}岁</span>
-                          <strong>{l.title}</strong>
-                        </header>
-                        <p>{l.text}</p>
-                      </article>
+                        log={l}
+                        character={ending.character}
+                      />
                     ))
                   )}
                 </div>
@@ -824,10 +1057,26 @@ export default function App() {
                 {ending.highlights.length > 0 && (
                   <>
                     <h3>生平高潮</h3>
-                    <ul>
-                      {ending.highlights.map((h) => (
-                        <li key={h}>{h}</li>
-                      ))}
+                    <ul className="highlight-list">
+                      {ending.highlights.map((h) => {
+                        const climaxSrc = climaxUrlFromHighlight(h)
+                        return (
+                          <li key={h} className="highlight-item">
+                            {climaxSrc && (
+                              <img
+                                className="highlight-item__img"
+                                src={climaxSrc}
+                                alt=""
+                                loading="lazy"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none'
+                                }}
+                              />
+                            )}
+                            <span className="highlight-item__text">{h}</span>
+                          </li>
+                        )
+                      })}
                     </ul>
                   </>
                 )}
@@ -1004,6 +1253,32 @@ function CodexPanel({ codex }: { codex: CodexState }) {
   )
 }
 
+function LifeLogArticle({ log, character }: { log: LogEntry; character: Character }) {
+  const art = artUrlForLog(log, character)
+  return (
+    <article
+      className={`log log--${log.kind} imp-${log.importance}${log.importance >= 4 ? ' log--climax' : ''}${art ? ' log--has-art' : ''}`}
+    >
+      <header>
+        <span className="log__age">{log.age}岁</span>
+        <strong>{log.title}</strong>
+      </header>
+      {art && (
+        <img
+          className="log__art"
+          src={art}
+          alt=""
+          loading="lazy"
+          onError={(e) => {
+            e.currentTarget.style.display = 'none'
+          }}
+        />
+      )}
+      <p>{log.text}</p>
+    </article>
+  )
+}
+
 function StatusPanel({
   character,
   onSetPrimary,
@@ -1020,12 +1295,24 @@ function StatusPanel({
   const origin = showOrigin ? getOrigin(character.originId) : null
   return (
     <div className={`status-panel ${readOnly ? 'status-panel--embedded' : 'panel'}`}>
-      <h2>{title}</h2>
-      {origin && (
-        <p className="meta ending-identity">
-          {character.name} · {character.gender} · 出身{origin.name} · 享年{character.age}岁
-        </p>
-      )}
+      <div className="status-panel__head">
+        <img
+          className="status-panel__portrait"
+          src={portraitUrl(character)}
+          alt=""
+          onError={(e) => {
+            e.currentTarget.style.display = 'none'
+          }}
+        />
+        <div>
+          <h2>{title}</h2>
+          {origin && (
+            <p className="meta ending-identity">
+              {character.name} · {character.gender} · 出身{origin.name} · 享年{character.age}岁
+            </p>
+          )}
+        </div>
+      </div>
       <div className="grid-2">
         <div>
           <h3>属性</h3>

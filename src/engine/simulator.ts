@@ -81,6 +81,7 @@ import {
 } from '../lib/deathTags'
 import { ensureRelationCallbacks } from '../lib/relationPath'
 import { detectMainline } from '../lib/story'
+import { pickPortraitLook } from '../lib/assetResolve'
 
 const GRADE_MULT: Record<string, number> = {
   凡: 1,
@@ -1183,6 +1184,7 @@ export class LifeSimulator {
             title: ev.name,
             text: ev.text,
             importance: ev.importance,
+            eventId: ev.id,
           })
           this.pendingEvent = ev
           return {
@@ -1257,6 +1259,7 @@ export class LifeSimulator {
       title: `${ev.name}·去向`,
       text: `你选择：${choice.text}`,
       importance: 1,
+      eventId: ev.id,
     })
     pushYear(...applyEffects(this.character, choice.effects, this.character.age, ev.name, this.rng))
 
@@ -1310,6 +1313,7 @@ export class LifeSimulator {
         title: ev.name,
         text: ev.text,
         importance: ev.importance,
+        eventId: ev.id,
       })
       if (ev.needsChoice) {
         pushYear({
@@ -1318,6 +1322,7 @@ export class LifeSimulator {
           title: `${ev.name}·去向`,
           text: `你选择：${choice.text}`,
           importance: 1,
+          eventId: ev.id,
         })
       }
     } else {
@@ -1327,6 +1332,7 @@ export class LifeSimulator {
         title: ev.name,
         text: `${ev.name}——${choice.text}`,
         importance: ev.importance,
+        eventId: ev.id,
       })
     }
     pushYear(...applyEffects(c, choice.effects, c.age, ev.name, this.rng))
@@ -1394,6 +1400,7 @@ export function createBirth(
     yearsWithoutMajor: 0,
     eventQueue: [],
     relations: [],
+    portraitLook: pickPortraitLook(gender, rng),
   }
 
   applyAttrMods(c, origin.mods)

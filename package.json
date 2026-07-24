@@ -12,7 +12,8 @@
     "attr-audit": "npx --yes tsx scripts/attr-audit.mts",
     "sect-fork": "npx --yes tsx scripts/sect-fork-summary.mts",
     "choice-audit": "npx --yes tsx scripts/choice-audit.mts",
-    "death-audit": "npx --yes tsx scripts/death-audit.mts"
+    "death-audit": "npx --yes tsx scripts/death-audit.mts",
+    "event-census": "npx --yes tsx scripts/event-census.mts"
   },
   "dependencies": {
     "react": "^19.1.0",
@@ -22,6 +23,7 @@
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@vitejs/plugin-react": "^4.4.1",
+    "sharp": "^0.35.3",
     "typescript": "~5.8.3",
     "vite": "^6.3.5",
     "vitest": "^3.1.3"

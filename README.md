@@ -1,6 +1,6 @@
 # 武侠人生模拟器
 
-网页文字人生模拟：出身入世 → 按岁推演 → 抉择改命运 → 结算短传与分享图。当前交付至 **Phase 10**（死因合理性 · 凡尘全生涯弧）；规划见 `design/迭代计划-v4.md`。
+网页文字人生模拟：出身入世 → 按岁推演 → 抉择改命运 → 结算短传与分享图。当前交付至 **Phase 12**；下一版规划见 `design/迭代计划-v7.md`（开场界面 · 人生书架 · 仿真翻书）。
 
 ## 功能概览
 
@@ -27,7 +27,8 @@ npm run dev
 npm test                 # 单元测试
 npm run sect-fork        # 门派分叉 / Phase 6 契约回归
 npm run choice-audit     # 空气抉择应为 0
-npm run death-audit      # 死因种类、霸榜、凡尘分桶（Phase 10）
+npm run death-audit      # 死因种类、霸榜、凡尘分桶（Phase 10/12）
+npm run event-census     # 事件池盘点（Phase 12）
 ```
 
 ## 生产构建与 GitHub Pages
@@ -58,7 +59,10 @@ npm run preview
 ## 设计与计划
 
 - `design/设计文档.md` — 玩法与数据口径
-- `design/迭代计划-v4.md` — **第四版 / Phase 10**（死因合理性 · 士农工商/江湖客全生涯）
+- `design/迭代计划-v7.md` — **第七版 / Phase 13**（开场界面 · 人生书架 · 仿真翻书）
+- `design/迭代计划-v6.md` — Phase 12 已交付（内容盘点 · +50 人生事件 · 书本翻页）
+- `design/迭代计划-v5.md` — Phase 11 已交付（立绘 · 高潮/终局配图）
+- `design/迭代计划-v4.md` — Phase 10 已交付（死因 · 凡尘全生涯）
 - `design/迭代计划-v3.md` — Phase 9 已交付（样式 · 排版 · 交互）
 - `design/迭代计划-v2.md` — Phase 8 已交付
 - `design/迭代计划.md` — Phase 7 已交付

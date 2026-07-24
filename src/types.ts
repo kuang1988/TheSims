@@ -203,6 +203,17 @@ export interface CharacterAttrs {
   机缘: number
 }
 
+export type PortraitLook =
+  | 'huashan'
+  | 'wudang'
+  | 'shaolin'
+  | 'emei'
+  | 'gaibang'
+  | 'demon'
+  | 'bandit'
+  | 'civic'
+  | 'wanderer'
+
 export interface Character {
   name: string
   gender: '男' | '女'
@@ -225,6 +236,10 @@ export interface Character {
   eventQueue: { eventId: string; dueAge: number }[]
   /** 关系槽：师父/道侣/仇敌/挚友/徒弟 */
   relations: RelationSlot[]
+  /**
+   * 入世时随机/手动选定的立绘原型，终身沿用（不因门派身份自动更换）。
+   */
+  portraitLook: PortraitLook
 }
 
 export interface LogEntry {
@@ -233,6 +248,8 @@ export interface LogEntry {
   title: string
   text: string
   importance: number
+  /** 来源事件 id（用于高潮配图绑定） */
+  eventId?: string
 }
 
 export interface PendingChoice {

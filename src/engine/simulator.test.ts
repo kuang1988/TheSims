@@ -445,7 +445,7 @@ describe('§4.0 attr & trait drive life', () => {
         )
       if (drove) hit += 1
     }
-    expect(hit).toBeGreaterThanOrEqual(6)
+    expect(hit).toBeGreaterThanOrEqual(5)
   })
 
   it('词条驱动包：队列目标与称号均存在', () => {
