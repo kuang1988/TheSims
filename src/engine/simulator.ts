@@ -346,7 +346,15 @@ export function applyEffects(
 
   if (effects.addMartialArt) {
     const msg = addMartial(c, effects.addMartialArt, age, source)
-    if (msg) logs.push({ age, kind: 'martial', title: '武学', text: msg.text, importance: msg.importance })
+    const art = getMartial(effects.addMartialArt)
+    if (msg)
+      logs.push({
+        age,
+        kind: 'martial',
+        title: art?.name ? `武学·${art.name}` : '武学',
+        text: msg.text,
+        importance: msg.importance,
+      })
   }
   if (effects.upgradeMartialArt) {
     const msg = upgradeAnyMartial(c)
@@ -356,7 +364,14 @@ export function applyEffects(
     const msg = grantTitle(c, effects.grantTitle, age, source)
     const def = getTitle(effects.grantTitle)
     const imp = def && (def.rarity === '传说' || def.rarity === '史诗') ? 5 : 4
-    if (msg) logs.push({ age, kind: 'title', title: '名号', text: msg, importance: imp })
+    if (msg)
+      logs.push({
+        age,
+        kind: 'title',
+        title: def?.name ? `名号·${def.name}` : '名号',
+        text: msg,
+        importance: imp,
+      })
   }
   if (effects.setPrimaryTitle && c.titles.some((t) => t.id === effects.setPrimaryTitle)) {
     c.primaryTitleId = effects.setPrimaryTitle
@@ -408,7 +423,15 @@ export function applyEffects(
 
   if (toAdd.includes('saved_plague')) {
     const msg = grantTitle(c, 'jiushi', age, source)
-    if (msg) logs.push({ age, kind: 'title', title: '名号', text: msg, importance: 4 })
+    const def = getTitle('jiushi')
+    if (msg)
+      logs.push({
+        age,
+        kind: 'title',
+        title: def?.name ? `名号·${def.name}` : '名号',
+        text: msg,
+        importance: 4,
+      })
   }
 
   const afterTier = heartTier(c.attrs.心性)

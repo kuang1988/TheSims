@@ -1,7 +1,9 @@
 import type { Character, EndingReport, LogEntry } from '../types'
 import { artUrlForLog } from './assetResolve'
 
-export type BookPageKind = 'cover' | 'toc' | 'spread' | 'climax' | 'back'
+export type BookPageKind = 'cover' | 'profile' | 'toc' | 'spread' | 'climax' | 'back'
+
+export type ProfileSection = 'attrs' | 'bonds' | 'arts'
 
 export interface BookPage {
   id: string
@@ -16,6 +18,8 @@ export interface BookPage {
   artUrl?: string | null
   /** 封底用摘要 */
   summary?: string
+  /** 详细属性分册 */
+  profileSection?: ProfileSection
 }
 
 const MAX_ENTRIES_PER_SPREAD = 3
@@ -26,7 +30,7 @@ function isClimaxEntry(l: LogEntry): boolean {
   return l.importance >= 4 || l.kind === 'death'
 }
 
-/** 将一生日志编成书页：封面 → 目录（与高潮页一一对应）→ 内页/插页 → 封底 */
+/** 将一生日志编成书页：封面 → 详细属性 → 目录 → 内页/插页 → 封底 */
 export function buildLifeBookPages(
   logs: LogEntry[],
   character: Character,
@@ -102,6 +106,30 @@ export function buildLifeBookPages(
     summary: `${character.name} · ${character.gender}${opts?.originName ? ` · ${opts.originName}` : ''}`,
   })
 
+  pages.push(
+    {
+      id: 'profile-attrs',
+      kind: 'profile',
+      title: '六维与心性',
+      entries: [],
+      profileSection: 'attrs',
+    },
+    {
+      id: 'profile-bonds',
+      kind: 'profile',
+      title: '天赋与人事',
+      entries: [],
+      profileSection: 'bonds',
+    },
+    {
+      id: 'profile-arts',
+      kind: 'profile',
+      title: '武学与名号',
+      entries: [],
+      profileSection: 'arts',
+    },
+  )
+
   if (!climaxes.length) {
     pages.push({
       id: 'toc',
@@ -137,6 +165,7 @@ export function buildLifeBookPages(
 
 export function pageLabel(page: BookPage, index: number, total: number): string {
   if (page.kind === 'cover') return '封面'
+  if (page.kind === 'profile') return page.title || '详细属性'
   if (page.kind === 'toc') return page.title || '目录'
   if (page.kind === 'back') return '封底'
   if (page.age != null) return `第 ${index + 1} 页 · ${page.age}岁`

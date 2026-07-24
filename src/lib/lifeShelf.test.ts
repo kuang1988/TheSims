@@ -6,6 +6,7 @@ import {
   loadShelf,
   markShelfRead,
   removeShelfBook,
+  updateShelfProgress,
   upsertShelfBook,
 } from './lifeShelf'
 
@@ -68,5 +69,28 @@ describe('lifeShelf', () => {
         lifeLog: [],
       }),
     ).toBe(true)
+  })
+
+  it('stores reading progress without marking read on open', () => {
+    const c = createBirth(7, '男')
+    const ending = {
+      deathReason: '寿元耗尽，寿终正寝',
+      endingTags: ['寿终正寝'],
+      summary: '……',
+      score: 100,
+      finalAge: 40,
+      character: c,
+      highlights: [],
+      mainline: '散修',
+      force: 1,
+      lifeLog: [],
+    }
+    const list = upsertShelfBook(ending, 7, '农户')
+    const id = list[0].id
+    const progressed = updateShelfProgress(id, 3)
+    expect(progressed[0].lastPageIndex).toBe(3)
+    expect(progressed[0].readAt).toBeFalsy()
+    const read = markShelfRead(id)
+    expect(read[0].readAt).toBeTruthy()
   })
 })

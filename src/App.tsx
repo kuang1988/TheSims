@@ -28,11 +28,16 @@ import { LifeBook } from './components/LifeBook'
 import { HomeScreen } from './components/HomeScreen'
 import { LifeShelf } from './components/LifeShelf'
 import { CodexScreen } from './components/CodexScreen'
+import { HexAttrRadar } from './components/HexAttrRadar'
+import { HeartDial } from './components/HeartDial'
 import { downloadShareCard } from './lib/shareCard'
+import { BRAND } from './lib/brand'
+import { cleanPlayerNameInput, guardPlayerName, NAME_FALLBACK } from './lib/nameGuard'
 import {
   loadShelf,
   markShelfRead,
   removeShelfBook,
+  updateShelfProgress,
   upsertShelfBook,
   type LifeBookRecord,
 } from './lib/lifeShelf'
@@ -48,7 +53,6 @@ import {
   portraitUrlFor,
 } from './lib/assetResolve'
 import { matchSynergies } from './data/synergies'
-import { TRAITS } from './data/traits'
 import type { PortraitArchetype } from './data/assetManifest'
 import type {
   Character,
@@ -134,7 +138,6 @@ export default function App() {
   const [seed, setSeed] = useState(boot.seed)
   const [genderOption, setGenderOption] = useState<GenderOption>('随机')
   const [codex, setCodex] = useState<CodexState>(() => loadCodex())
-  const [lockedTraitId, setLockedTraitId] = useState<string>('')
   const [character, setCharacter] = useState<Character>(boot.character)
   const [prefs] = useState(loadPlayPrefs)
   const [mode, setMode] = useState<PlayMode>(prefs.mode)
@@ -147,7 +150,6 @@ export default function App() {
   const [showStatus, setShowStatus] = useState(false)
   const [showEndingDetail, setShowEndingDetail] = useState(false)
   const [showLifeReview, setShowLifeReview] = useState(false)
-  const [showAllTitles, setShowAllTitles] = useState(false)
   const [reviewClimaxOnly, setReviewClimaxOnly] = useState(false)
   const [foldLowLogs, setFoldLowLogs] = useState(prefs.foldLowLogs)
   const [toast, setToast] = useState<{ message: string; kind: 'ok' | 'err' | 'info' } | null>(null)
@@ -155,8 +157,6 @@ export default function App() {
   const [logFlash, setLogFlash] = useState(false)
   const [runStats, setRunStats] = useState<RunStats>(() => loadStats())
   const [newAchievements, setNewAchievements] = useState<AchievementDef[]>([])
-  const [showSeedRoom, setShowSeedRoom] = useState(false)
-  const [seedInput, setSeedInput] = useState('')
   const [showBirthExtras, setShowBirthExtras] = useState(false)
   const [showEndingLoot, setShowEndingLoot] = useState(false)
   const [showLifePortraitPicker, setShowLifePortraitPicker] = useState(false)
@@ -186,21 +186,26 @@ export default function App() {
     }
   }, [])
 
-  const canLockTrait = codex.achievements.length >= 1
-
   const resolveGender = (option: GenderOption): '男' | '女' | undefined => {
     if (option === '男' || option === '女') return option
     return undefined
   }
 
-  const rollBirth = (s: number, option: GenderOption = genderOption, lockId: string = lockedTraitId) => {
+  const rollBirth = (
+    s: number,
+    option: GenderOption = genderOption,
+    opts?: { keepName?: string },
+  ) => {
+    const next = createBirth(s, resolveGender(option), {
+      unlockedAchievements: codex.achievements,
+    })
+    const keepRaw = opts?.keepName?.replace(/\s+/g, '')
+    if (keepRaw) {
+      const kept = guardPlayerName(keepRaw)
+      if (kept.ok) next.name = kept.name
+    }
     setSeed(s)
-    setCharacter(
-      createBirth(s, resolveGender(option), {
-        lockedTraitIds: lockId ? [lockId] : [],
-        unlockedAchievements: codex.achievements,
-      }),
-    )
+    setCharacter(next)
   }
 
   const reroll = () => {
@@ -208,28 +213,27 @@ export default function App() {
     rollBirth(s)
   }
 
-  const applySeed = () => {
-    const n = Number(seedInput.trim())
-    if (!Number.isFinite(n) || n < 0) {
-      showToast('请输入有效的非负整数种子', 'err')
-      return
-    }
-    rollBirth(Math.floor(n) % 1_000_000_000)
-    showToast('已载入种子（同 seed 可比抉择）', 'ok')
+  const renameCharacter = (raw: string) => {
+    // 输入过程：只清洗字形，敏感词在失焦 / 入世时硬拦
+    const next = cleanPlayerNameInput(raw)
+    setCharacter((c) => ({ ...c, name: next }))
   }
 
-  const copySeed = async () => {
-    try {
-      await navigator.clipboard.writeText(String(seed))
-      showToast('种子已复制', 'ok')
-    } catch {
-      showToast('复制失败', 'err')
+  const commitCharacterName = () => {
+    const guarded = guardPlayerName(character.name)
+    if (!guarded.ok) {
+      showToast(guarded.reason, 'err')
+      setCharacter((c) => ({ ...c, name: NAME_FALLBACK }))
+      return false
     }
+    setCharacter((c) => ({ ...c, name: guarded.name }))
+    return true
   }
 
   const changeGender = (option: GenderOption) => {
     setGenderOption(option)
-    rollBirth(seed, option)
+    const keep = guardPlayerName(character.name)
+    rollBirth(seed, option, { keepName: keep.ok ? keep.name : undefined })
   }
 
   const applyPortraitLook = (look: PortraitArchetype) => {
@@ -259,13 +263,16 @@ export default function App() {
   const origin = useMemo(() => getOrigin(character.originId), [character.originId])
   const traits = useMemo(() => character.traitIds.map(getTrait), [character.traitIds])
   const synergies = useMemo(() => matchSynergies(character.traitIds), [character.traitIds])
-  const lockableTraits = useMemo(
-    () => TRAITS.filter((t) => !t.unlockBy || codex.achievements.includes(t.unlockBy)),
-    [codex.achievements],
-  )
 
   const startLife = () => {
+    const guarded = guardPlayerName(character.name)
+    if (!guarded.ok) {
+      showToast(guarded.reason, 'err')
+      setCharacter((c) => ({ ...c, name: NAME_FALLBACK }))
+      return
+    }
     const c = structuredClone(character)
+    c.name = guarded.name
     const sim = new LifeSimulator(c, seed ^ 0x9e3779b9, mode, majorOnly)
     const intro: LogEntry = {
       age: 0,
@@ -318,7 +325,6 @@ export default function App() {
 
   const openShelfBookReader = (book: LifeBookRecord) => {
     setOpenShelfBook(book)
-    setShelfBooks(markShelfRead(book.id))
     setScreen('book')
   }
 
@@ -436,10 +442,6 @@ export default function App() {
     () => (ending ? endingDeathUrl(ending.deathReason, ending.character) : null),
     [ending],
   )
-  const endingPortraitArt = useMemo(
-    () => (ending ? portraitUrl(ending.character) : null),
-    [ending],
-  )
 
   const copyEnding = async () => {
     if (!ending) return
@@ -462,7 +464,7 @@ export default function App() {
       )}
       <header className="topbar">
         <button type="button" className="brand brand--btn" onClick={goHome}>
-          武侠人生模拟器
+          {BRAND.name}
         </button>
         {screen === 'life' && (
           <div className="topbar__actions">
@@ -486,7 +488,7 @@ export default function App() {
           screen === 'codex') && (
           <div className="topbar__actions">
             <button type="button" className="btn ghost" onClick={goHome}>
-              大厅
+              {BRAND.lobby}
             </button>
             {screen !== 'shelf' && (
               <button
@@ -497,12 +499,12 @@ export default function App() {
                   setScreen('shelf')
                 }}
               >
-                我的人生
+                {BRAND.shelf}
               </button>
             )}
             {screen !== 'codex' && (
               <button type="button" className="btn ghost" onClick={() => setScreen('codex')}>
-                成就图鉴
+                {BRAND.codex}
               </button>
             )}
           </div>
@@ -535,7 +537,7 @@ export default function App() {
         {screen === 'codex' && <CodexScreen codex={codex} onBack={goHome} />}
 
         {screen === 'book' && openShelfBook && (
-          <section className="panel ending-book-wrap shelf-reader">
+          <section className="panel ending-book-wrap shelf-reader shelf-reader--drawn">
             <LifeBook
               logs={openShelfBook.ending.lifeLog}
               character={openShelfBook.ending.character}
@@ -544,6 +546,26 @@ export default function App() {
               originName={openShelfBook.originName}
               mode="reading"
               realisticFlip
+              startClosed={(openShelfBook.lastPageIndex ?? 0) === 0}
+              initialPage={openShelfBook.lastPageIndex ?? 0}
+              onProgress={(pageIndex) => {
+                setShelfBooks(updateShelfProgress(openShelfBook.id, pageIndex))
+                setOpenShelfBook((b) => (b ? { ...b, lastPageIndex: pageIndex } : b))
+              }}
+              onToggleBookmark={(pageIndex, on) => {
+                setShelfBooks(
+                  updateShelfProgress(openShelfBook.id, openShelfBook.lastPageIndex ?? pageIndex, {
+                    bookmarkPage: on ? pageIndex : null,
+                  }),
+                )
+                setOpenShelfBook((b) =>
+                  b ? { ...b, bookmarkPage: on ? pageIndex : undefined } : b,
+                )
+              }}
+              onReachedEnd={() => {
+                setShelfBooks(markShelfRead(openShelfBook.id))
+                setOpenShelfBook((b) => (b ? { ...b, readAt: Date.now() } : b))
+              }}
               onBack={() => {
                 setOpenShelfBook(null)
                 setScreen('shelf')
@@ -570,7 +592,19 @@ export default function App() {
                 }}
               />
               <div className="birth-hero__copy">
-                <h1>{character.name}</h1>
+                <label className="birth-hero__name">
+                  <span className="field-label">姓名</span>
+                  <input
+                    type="text"
+                    className="birth-hero__name-input"
+                    value={character.name}
+                    maxLength={6}
+                    placeholder="自定义姓名"
+                    aria-label="角色姓名"
+                    onChange={(e) => renameCharacter(e.target.value)}
+                    onBlur={() => commitCharacterName()}
+                  />
+                </label>
                 <p className="lead">
                   {character.gender} · {origin.name}
                   <span className="muted">（{origin.desc}）</span>
@@ -629,26 +663,51 @@ export default function App() {
               <p className="meta portrait-picker__hint">点选缩略图更换；入世后不会因门派自动换脸。</p>
             </div>
 
+            <div className="birth-profile birth-profile--attrs">
+              <h3 className="book-profile__section">
+                六维与心性
+                <span>寿元约 {character.lifespan} 岁</span>
+              </h3>
+              <div className="attr-duo">
+                <HexAttrRadar attrs={character.attrs} size={200} />
+                <HeartDial value={character.attrs.心性} />
+              </div>
+            </div>
+
             <div className="birth-traits">
-              <h3>天赋词条</h3>
-              <ul className="trait-list">
-                {traits.map((t) => (
-                  <li key={t.id}>
-                    <strong>
-                      {t.name}
-                      <em>{t.rarity}</em>
-                      {lockedTraitId === t.id ? ' · 已锁' : ''}
-                    </strong>
-                    <span>{t.desc}</span>
-                  </li>
-                ))}
+              <h3 className="book-profile__section">
+                天赋词条
+                <span>{traits.length} 枚</span>
+              </h3>
+              <ul className="codex-achieve-grid book-profile__grid">
+                {traits.map((t) => {
+                  const rarity =
+                    t.rarity === '传说'
+                      ? 'rarity-legend'
+                      : t.rarity === '史诗'
+                        ? 'rarity-epic'
+                        : t.rarity === '稀有'
+                          ? 'rarity-rare'
+                          : 'rarity-common'
+                  return (
+                    <li
+                      key={t.id}
+                      className={`codex-achieve codex-achieve--on ${rarity}`}
+                      title={t.desc}
+                    >
+                      <strong>{t.name}</strong>
+                      <em className="book-profile__tag">{t.rarity}</em>
+                      <span>{t.desc}</span>
+                    </li>
+                  )
+                })}
               </ul>
               {synergies.length > 0 && (
                 <div className="synergy-box">
-                  <h4>词条联动</h4>
-                  <ul className="trait-list compact">
+                  <h4 className="book-profile__section">词条联动</h4>
+                  <ul className="codex-achieve-grid book-profile__grid">
                     {synergies.map((s) => (
-                      <li key={s.id}>
+                      <li key={s.id} className="codex-achieve codex-achieve--on rarity-epic">
                         <strong>{s.name}</strong>
                         <span>{s.desc}</span>
                       </li>
@@ -656,7 +715,6 @@ export default function App() {
                   </ul>
                 </div>
               )}
-              <p className="meta">预计寿元约 {character.lifespan} 岁 · 种子 {seed}</p>
             </div>
 
             <div className="mode-row compact-mode">
@@ -685,113 +743,53 @@ export default function App() {
               className="btn birth-extras-toggle"
               onClick={() => setShowBirthExtras((v) => !v)}
             >
-              {showBirthExtras ? '收起详细设定' : '展开属性 / 倍速 / 图鉴统计'}
+              {showBirthExtras ? '收起推演设定' : '展开倍速 / 图鉴统计'}
             </button>
 
             {showBirthExtras && (
               <div className="birth-extras">
-                <div className="grid-2">
-                  <div>
-                    <h3>属性</h3>
-                    {(Object.keys(character.attrs) as (keyof Character['attrs'])[]).map((k) => (
-                      <AttrBar
-                        key={k}
-                        label={k === '心性' ? `心性·${heartTier(character.attrs.心性)}` : k}
-                        value={character.attrs[k]}
-                      />
-                    ))}
-                    <p className="meta stats-line">{statsSummary(runStats)}</p>
-                    <p className="meta stats-line">
-                      图鉴 成就 {codexProgress(codex).achievements} · 武学{' '}
-                      {codexProgress(codex).martialArts} · 称号 {codexProgress(codex).titles}
-                    </p>
-                  </div>
-                  <div>
-                    {mode === 'semi' && (
-                      <label className="check">
-                        <input
-                          type="checkbox"
-                          checked={majorOnly}
-                          onChange={(e) => setMajorOnly(e.target.checked)}
-                        />
-                        仅重大抉择暂停（推荐，约 8–20 次）
-                      </label>
-                    )}
-                    {mode === 'auto' && (
-                      <label className="speed">
-                        倍速
-                        <input
-                          type="range"
-                          min={1}
-                          max={8}
-                          value={autoSpeed}
-                          onChange={(e) => setAutoSpeed(Number(e.target.value))}
-                        />
-                        <span>×{autoSpeed}</span>
-                      </label>
-                    )}
-                  </div>
-                </div>
+                <p className="meta stats-line">{statsSummary(runStats)}</p>
+                <p className="meta stats-line">
+                  图鉴 成就 {codexProgress(codex).achievements} · 武学{' '}
+                  {codexProgress(codex).martialArts} · 称号 {codexProgress(codex).titles}
+                </p>
+                {mode === 'semi' && (
+                  <label className="check">
+                    <input
+                      type="checkbox"
+                      checked={majorOnly}
+                      onChange={(e) => setMajorOnly(e.target.checked)}
+                    />
+                    仅重大抉择暂停（推荐，约 8–20 次）
+                  </label>
+                )}
+                {mode === 'auto' && (
+                  <label className="speed">
+                    倍速
+                    <input
+                      type="range"
+                      min={1}
+                      max={8}
+                      value={autoSpeed}
+                      onChange={(e) => setAutoSpeed(Number(e.target.value))}
+                    />
+                    <span>×{autoSpeed}</span>
+                  </label>
+                )}
               </div>
             )}
 
             <div className="cta-row">
               <button type="button" className="btn primary" onClick={startLife}>
-                开始人生
+                入世开卷
               </button>
               <button type="button" className="btn" onClick={reroll}>
                 重开天命
               </button>
-              <button type="button" className="btn" onClick={() => setShowSeedRoom((v) => !v)}>
-                {showSeedRoom ? '收起种子房' : '种子房'}
-              </button>
               <button type="button" className="btn" onClick={() => setScreen('codex')}>
-                成就图鉴
+                {BRAND.codex}
               </button>
             </div>
-            {showSeedRoom && (
-              <div className="seed-room">
-                <h3>种子房 · 同命不同抉择</h3>
-                <p className="meta">当前种子 {seed}。分享种子后，对方可用半自动走出另一条人生。</p>
-                <div className="seed-row">
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="输入种子"
-                    value={seedInput}
-                    onChange={(e) => setSeedInput(e.target.value)}
-                  />
-                  <button type="button" className="btn" onClick={applySeed}>
-                    载入
-                  </button>
-                  <button type="button" className="btn" onClick={copySeed}>
-                    复制种子
-                  </button>
-                </div>
-                {canLockTrait ? (
-                  <label className="lock-trait">
-                    锁定一词条再重开
-                    <select
-                      value={lockedTraitId}
-                      onChange={(e) => {
-                        const id = e.target.value
-                        setLockedTraitId(id)
-                        rollBirth(seed, genderOption, id)
-                      }}
-                    >
-                      <option value="">不锁定</option>
-                      {lockableTraits.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.name}（{t.rarity}）
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                ) : (
-                  <p className="muted">解锁任意成就后，可锁定 1 个词条再随机其余。</p>
-                )}
-              </div>
-            )}
           </section>
         )}
 
@@ -972,40 +970,17 @@ export default function App() {
         )}
 
         {screen === 'ending' && ending && (
-          <section className="panel ending">
+          <section className="panel ending ending--slim">
             <p className="eyebrow">尘埃落定</p>
-            <div className="ending-hero">
-              <div className="ending-hero__art">
-                {endingDeathArt && (
-                  <img
-                    className="ending-hero__death"
-                    src={endingDeathArt}
-                    alt=""
-                    loading="eager"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none'
-                    }}
-                  />
-                )}
-              </div>
-              <div className="ending-hero__copy">
-                {endingPortraitArt && (
-                  <img
-                    className="ending-hero__portrait"
-                    src={endingPortraitArt}
-                    alt=""
-                    loading="eager"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none'
-                    }}
-                  />
-                )}
+            <div className="ending-bar">
+              <div className="ending-bar__copy">
                 <p className="death-tag">{primaryDeathTag(ending.deathReason, ending.character)}</p>
-                <h1 className="death">{ending.deathReason}</h1>
-                <p className="ending-who">{displayName(ending.character)}</p>
-                <p className="mainline-tag">本局主线 · {ending.mainline}</p>
-                <div className="tags">
-                  {ending.endingTags.map((t) => (
+                <h1 className="death ending-bar__death">{ending.deathReason}</h1>
+                <p className="ending-bar__meta">
+                  本局评分 {ending.score} · 主线 · {ending.mainline}
+                </p>
+                <div className="tags ending-bar__tags">
+                  {ending.endingTags.slice(0, 4).map((t) => (
                     <span
                       key={t}
                       className={
@@ -1017,9 +992,18 @@ export default function App() {
                   ))}
                 </div>
               </div>
+              {endingDeathArt && (
+                <img
+                  className="ending-bar__thumb"
+                  src={endingDeathArt}
+                  alt=""
+                  loading="eager"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none'
+                  }}
+                />
+              )}
             </div>
-            <p className="summary ending-summary-lead">{ending.summary}</p>
-            <p className="score">本局评分 {ending.score}</p>
 
             <div className="cta-row ending-share">
               <button type="button" className="btn primary" onClick={copyEnding}>
@@ -1036,46 +1020,27 @@ export default function App() {
               >
                 下载分享图
               </button>
-            </div>
-
-            <div className="cta-row ending-inspect">
               <button
                 type="button"
-                className={`btn ${endingReadAsBook ? 'primary' : ''}`}
-                onClick={() => setEndingReadAsBook(true)}
-              >
-                翻书回顾
-              </button>
-              <button
-                type="button"
-                className={`btn ${!endingReadAsBook && showLifeReview ? 'primary' : ''}`}
+                className="btn"
                 onClick={() => {
-                  setEndingReadAsBook(false)
-                  setShowLifeReview(true)
+                  reroll()
+                  setScreen('birth')
+                  setEnding(null)
                   setShowEndingDetail(false)
+                  setShowLifeReview(false)
+                  setShowEndingLoot(false)
+                  setNewAchievements([])
+                  simRef.current = null
                 }}
               >
-                卷轴回顾
+                再入江湖
               </button>
-              <button
-                type="button"
-                className={`btn ${showEndingDetail ? 'primary' : ''}`}
-                onClick={() => {
-                  setShowEndingDetail((v) => !v)
-                  if (!showEndingDetail) {
-                    setShowLifeReview(false)
-                    setEndingReadAsBook(false)
-                  }
-                }}
-              >
-                {showEndingDetail ? '收起详细属性' : '查看详细属性'}
+              <button type="button" className="btn" onClick={() => setScreen('shelf')}>
+                {BRAND.shelf}
               </button>
-              <button
-                type="button"
-                className={`btn ${showEndingLoot ? 'primary' : ''}`}
-                onClick={() => setShowEndingLoot((v) => !v)}
-              >
-                {showEndingLoot ? '收起武学名号' : '武学 / 名号 / 高潮'}
+              <button type="button" className="btn" onClick={goHome}>
+                {BRAND.home}
               </button>
             </div>
 
@@ -1093,197 +1058,167 @@ export default function App() {
               </div>
             )}
 
-            {endingReadAsBook && (
-              <div className="ending-book-wrap">
-                <LifeBook
-                  logs={ending.lifeLog}
-                  character={ending.character}
-                  seed={seed}
-                  ending={ending}
-                  originName={getOrigin(ending.character.originId).name}
-                  mode="reading"
-                  realisticFlip
-                  onShare={() => {
-                    void downloadShareCard(ending, seed).then(() => {
-                      showToast('已生成分享图', 'ok')
-                    })
-                  }}
-                />
-              </div>
-            )}
-
-            {!endingReadAsBook && showLifeReview && (
-              <div className="life-review">
-                <div className="life-review__head">
-                  <h2>一生回顾（卷轴）</h2>
-                  <label className="fold-toggle">
-                    <input
-                      type="checkbox"
-                      checked={reviewClimaxOnly}
-                      onChange={(e) => setReviewClimaxOnly(e.target.checked)}
-                    />
-                    仅看高潮
-                  </label>
-                </div>
-                <p className="meta">
-                  共 {ending.lifeLog.length} 条记载
-                  {reviewClimaxOnly ? `，当前显示 ${reviewLogs.length} 条` : ''}
-                </p>
-                <div className="life-review__stream">
-                  {reviewLogs.length === 0 ? (
-                    <p className="muted">暂无记载可回顾。</p>
-                  ) : (
-                    reviewLogs.map((l, i) => (
-                      <LifeLogArticle
-                        key={`review-${l.age}-${i}-${l.title}`}
-                        log={l}
-                        character={ending.character}
-                      />
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
-
-            {showEndingDetail && (
-              <StatusPanel
+            <div className="ending-book-wrap">
+              <LifeBook
+                logs={ending.lifeLog}
                 character={ending.character}
-                title="终局详情"
-                readOnly
-                showOrigin
+                seed={seed}
+                ending={ending}
+                originName={getOrigin(ending.character.originId).name}
+                mode="reading"
+                realisticFlip
+                startClosed
+                onShare={() => {
+                  void downloadShareCard(ending, seed).then(() => {
+                    showToast('已生成分享图', 'ok')
+                  })
+                }}
               />
-            )}
+            </div>
 
-            {showEndingLoot && (
-              <div className="ending-loot">
-                {ending.highlights.length > 0 && (
-                  <>
-                    <h3>生平高潮</h3>
-                    <ul className="highlight-list">
-                      {ending.highlights.map((h) => {
-                        const climaxSrc = climaxUrlFromHighlight(h)
-                        return (
-                          <li key={h} className="highlight-item">
-                            {climaxSrc && (
-                              <img
-                                className="highlight-item__img"
-                                src={climaxSrc}
-                                alt=""
-                                loading="lazy"
-                                onError={(e) => {
-                                  e.currentTarget.style.display = 'none'
-                                }}
-                              />
-                            )}
-                            <span className="highlight-item__text">{h}</span>
-                          </li>
-                        )
-                      })}
-                    </ul>
-                  </>
-                )}
+            <details className="ending-more">
+              <summary>更多回顾</summary>
+              <div className="cta-row ending-inspect">
+                <button
+                  type="button"
+                  className={`btn ${!endingReadAsBook && showLifeReview ? 'primary' : ''}`}
+                  onClick={() => {
+                    setEndingReadAsBook(false)
+                    setShowLifeReview(true)
+                    setShowEndingDetail(false)
+                    setShowEndingLoot(false)
+                  }}
+                >
+                  卷轴回顾
+                </button>
+                <button
+                  type="button"
+                  className={`btn ${showEndingDetail ? 'primary' : ''}`}
+                  onClick={() => {
+                    setShowEndingDetail((v) => !v)
+                    setShowLifeReview(false)
+                    setShowEndingLoot(false)
+                    setEndingReadAsBook(true)
+                  }}
+                >
+                  {showEndingDetail ? '收起详细属性' : '查看详细属性'}
+                </button>
+                <button
+                  type="button"
+                  className={`btn ${showEndingLoot ? 'primary' : ''}`}
+                  onClick={() => {
+                    setShowEndingLoot((v) => !v)
+                    setShowLifeReview(false)
+                    setShowEndingDetail(false)
+                    setEndingReadAsBook(true)
+                  }}
+                >
+                  {showEndingLoot ? '收起武学名号' : '武学 / 名号 / 高潮'}
+                </button>
+                <button type="button" className="btn" onClick={() => setScreen('codex')}>
+                  {BRAND.codex}
+                </button>
+              </div>
 
-                <h3>最终武学</h3>
-                {ending.character.martialArts.length === 0 ? (
-                  <p className="muted">尚不会武，只凭蛮力走完一生。</p>
-                ) : (
-                  <ul className="martial-list">
+              {!endingReadAsBook && showLifeReview && (
+                <div className="life-review">
+                  <div className="life-review__head">
+                    <h2>一生回顾（卷轴）</h2>
+                    <label className="fold-toggle">
+                      <input
+                        type="checkbox"
+                        checked={reviewClimaxOnly}
+                        onChange={(e) => setReviewClimaxOnly(e.target.checked)}
+                      />
+                      仅看高潮
+                    </label>
+                  </div>
+                  <p className="meta">
+                    共 {ending.lifeLog.length} 条记载
+                    {reviewClimaxOnly ? `，当前显示 ${reviewLogs.length} 条` : ''}
+                  </p>
+                  <div className="life-review__stream">
+                    {reviewLogs.length === 0 ? (
+                      <p className="muted">暂无记载可回顾。</p>
+                    ) : (
+                      reviewLogs.map((l, i) => (
+                        <LifeLogArticle
+                          key={`review-${l.age}-${i}-${l.title}`}
+                          log={l}
+                          character={ending.character}
+                        />
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {showEndingDetail && (
+                <StatusPanel character={ending.character} title="终局详情" readOnly showOrigin />
+              )}
+
+              {showEndingLoot && (
+                <div className="ending-loot">
+                  {ending.highlights.length > 0 && (
+                    <>
+                      <h3>生平高潮</h3>
+                      <ul className="highlight-list">
+                        {ending.highlights.map((h) => {
+                          const climaxSrc = climaxUrlFromHighlight(h)
+                          return (
+                            <li key={h} className="highlight-item">
+                              {climaxSrc && (
+                                <img
+                                  className="highlight-item__img"
+                                  src={climaxSrc}
+                                  alt=""
+                                  loading="lazy"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none'
+                                  }}
+                                />
+                              )}
+                              <span className="highlight-item__text">{h}</span>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </>
+                  )}
+                  <h3>武学</h3>
+                  <ul className="trait-list compact">
                     {ending.character.martialArts.map((m) => {
                       const d = getMartial(m.id)
                       return (
                         <li key={m.id}>
                           <strong>{d.name}</strong>
                           <span>
-                            {d.type} · {d.grade} · {m.level}层
+                            {d.grade} · {m.level}
                           </span>
                         </li>
                       )
                     })}
                   </ul>
-                )}
-
-                <h3>名号</h3>
-                {ending.character.titles.length === 0 ? (
-                  <p className="muted">未曾留下响亮名号。</p>
-                ) : (
-                  <>
-                    {ending.character.primaryTitleId && (
-                      <p className="primary-title-line">
-                        主称「{getTitle(ending.character.primaryTitleId).name}」
-                        <span className="meta">
-                          {' '}
-                          · {getTitle(ending.character.primaryTitleId).rarity}
-                        </span>
-                      </p>
-                    )}
-                    {ending.character.titles.length > 1 && (
-                      <button
-                        type="button"
-                        className="btn"
-                        onClick={() => setShowAllTitles((v) => !v)}
-                      >
-                        {showAllTitles
-                          ? '收起全部名号'
-                          : `展开其余 ${ending.character.titles.length - (ending.character.primaryTitleId ? 1 : 0)} 个名号`}
-                      </button>
-                    )}
-                    {showAllTitles && (
-                      <ul className="title-list">
-                        {ending.character.titles.map((t) => {
-                          const d = getTitle(t.id)
-                          return (
-                            <li key={t.id}>
-                              <strong>
-                                {d.name}
-                                {ending.character.primaryTitleId === t.id ? '（主）' : ''}
-                              </strong>
-                              <span>
-                                {t.gainedAt}岁 · {d.rarity}
-                              </span>
-                            </li>
-                          )
-                        })}
-                      </ul>
-                    )}
-                  </>
-                )}
-              </div>
-            )}
-
-            <div className="cta-row">
-              <button
-                type="button"
-                className="btn primary"
-                onClick={() => {
-                  reroll()
-                  setScreen('birth')
-                  setEnding(null)
-                  setShowEndingDetail(false)
-                  setShowLifeReview(false)
-                  setShowAllTitles(false)
-                  setShowEndingLoot(false)
-                  setNewAchievements([])
-                  simRef.current = null
-                }}
-              >
-                再开一局
-              </button>
-              <button
-                type="button"
-                className="btn"
-                onClick={() => {
-                  setScreen('shelf')
-                }}
-              >
-                我的人生
-              </button>
-              <button type="button" className="btn" onClick={goHome}>
-                返回大厅
-              </button>
-              <button type="button" className="btn" onClick={() => setScreen('codex')}>
-                成就图鉴
-              </button>
-            </div>
+                  <h3>名号</h3>
+                  <ul className="trait-list compact">
+                    {ending.character.titles.map((t) => {
+                      const d = getTitle(t.id)
+                      return (
+                        <li key={t.id}>
+                          <strong>
+                            {d.name}
+                            {ending.character.primaryTitleId === t.id ? '（主）' : ''}
+                          </strong>
+                          <span>
+                            {t.gainedAt}岁 · {d.rarity}
+                          </span>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </div>
+              )}
+            </details>
           </section>
         )}
 

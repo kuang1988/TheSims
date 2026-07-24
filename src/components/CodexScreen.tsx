@@ -5,6 +5,7 @@ import {
 } from '../lib/meta'
 import { MARTIAL_ARTS } from '../data/martialArts'
 import { TITLES } from '../data/titles'
+import { BRAND } from '../lib/brand'
 
 function rarityClass(r: string) {
   return r === '传说'
@@ -30,22 +31,22 @@ export function CodexScreen({
     <section className="panel codex-screen">
       <div className="codex-screen__head">
         <div>
-          <p className="eyebrow">收集</p>
-          <h1>成就图鉴</h1>
+          <p className="eyebrow">江湖簿册</p>
+          <h1>{BRAND.codex}</h1>
           <p className="muted">走过的路，落成格子里的一枚枚印记。</p>
         </div>
         <button type="button" className="btn tiny" onClick={onBack}>
-          返回大厅
+          {BRAND.home}
         </button>
       </div>
 
       <p className="meta codex-screen__progress">
-        成就 {progress.achievements} · 武学 {progress.martialArts} · 称号 {progress.titles} · 结局标签{' '}
+        功业 {progress.achievements} · 武学 {progress.martialArts} · 称号 {progress.titles} · 结局标签{' '}
         {progress.endings}
       </p>
 
       <h2 className="codex-screen__section">
-        成就收藏
+        功业收藏
         <span>
           {unlockedCount}/{ACHIEVEMENTS.length}
         </span>

@@ -12,6 +12,10 @@ export interface LifeBookRecord {
   createdAt: number
   seed: number
   readAt?: number
+  /** 上次阅读到的页码（0-based） */
+  lastPageIndex?: number
+  /** 用户夹丝书签页 */
+  bookmarkPage?: number
   title: string
   gender: '男' | '女'
   portraitLook: PortraitLook
@@ -137,6 +141,27 @@ export function markShelfRead(id: string): LifeBookRecord[] {
   return list
 }
 
+export function updateShelfProgress(
+  id: string,
+  pageIndex: number,
+  opts?: { markRead?: boolean; bookmarkPage?: number | null },
+): LifeBookRecord[] {
+  const list = loadShelf().map((b) => {
+    if (b.id !== id) return b
+    const next: LifeBookRecord = {
+      ...b,
+      lastPageIndex: Math.max(0, pageIndex),
+    }
+    if (opts?.markRead) next.readAt = Date.now()
+    if (opts && 'bookmarkPage' in opts) {
+      next.bookmarkPage = opts.bookmarkPage == null ? undefined : opts.bookmarkPage
+    }
+    return next
+  })
+  saveShelf(list)
+  return list
+}
+
 export function removeShelfBook(id: string): LifeBookRecord[] {
   const list = loadShelf().filter((b) => b.id !== id)
   saveShelf(list)
@@ -152,7 +177,7 @@ export function shelfCoverUrls(book: LifeBookRecord): { portrait: string; death:
 
 export function shelfStatusLabel(book: LifeBookRecord): string {
   if (book.readAt) return '已读'
-  // 刚上架 10 分钟内标「刚落成」
+  if (book.lastPageIndex != null && book.lastPageIndex > 0) return '续读'
   if (Date.now() - book.createdAt < 10 * 60 * 1000) return '刚落成'
   return '未读'
 }

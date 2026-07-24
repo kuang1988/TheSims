@@ -45,6 +45,12 @@ describe('lifeBookPages', () => {
     ]
     const pages = buildLifeBookPages(logs, c, { seed: 12, originName: '农户' })
     expect(pages[0]?.kind).toBe('cover')
+    expect(pages.filter((p) => p.kind === 'profile').map((p) => p.profileSection)).toEqual([
+      'attrs',
+      'bonds',
+      'arts',
+    ])
+    expect(pages[1]?.kind).toBe('profile')
     expect(pages.some((p) => p.kind === 'toc')).toBe(true)
     expect(pages.some((p) => p.kind === 'climax')).toBe(true)
     expect(pages[pages.length - 1]?.kind).toBe('back')

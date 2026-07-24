@@ -1,6 +1,7 @@
 import type { LifeBookRecord } from '../lib/lifeShelf'
 import { shelfStatusLabel } from '../lib/lifeShelf'
 import { portraitUrl } from '../lib/assetResolve'
+import { BRAND } from '../lib/brand'
 
 export function LifeShelf({
   books,
@@ -19,29 +20,29 @@ export function LifeShelf({
     <section className="panel life-shelf">
       <div className="life-shelf__head">
         <div>
-          <p className="eyebrow">我的人生</p>
-          <h1>人生书架</h1>
-          <p className="muted">每一本，都是你走过的一世。</p>
+          <p className="eyebrow">{BRAND.shelf}</p>
+          <h1>藏书阁</h1>
+          <p className="muted">每一卷，都是你走过的一世江湖。</p>
         </div>
         <button type="button" className="btn tiny" onClick={onBack}>
-          返回大厅
+          {BRAND.home}
         </button>
       </div>
 
       {books.length === 0 ? (
         <div className="life-shelf__empty">
-          <p>书架尚空。去开始游戏，写就第一本。</p>
+          <p>阁中尚空。去{BRAND.start}，写就第一卷。</p>
           <button type="button" className="btn primary" onClick={onStart}>
-            开始游戏
+            {BRAND.start}
           </button>
         </div>
       ) : (
-        <ul className="life-shelf__grid">
+        <ul className="life-shelf__grid life-shelf__grid--rack">
           {books.map((book) => (
             <li key={book.id} className="shelf-card">
               <button
                 type="button"
-                className="shelf-card__cover"
+                className="shelf-card__cover shelf-card__cover--pull"
                 onClick={() => onOpen(book)}
                 aria-label={`打开 ${book.title}`}
               >
@@ -57,6 +58,7 @@ export function LifeShelf({
                     {book.finalAge}岁 · {book.mainline}
                   </span>
                 </div>
+                {book.bookmarkPage != null && <span className="shelf-card__ribbon" aria-hidden />}
               </button>
               <button type="button" className="shelf-card__title" onClick={() => onOpen(book)}>
                 {book.title}
@@ -65,6 +67,11 @@ export function LifeShelf({
               <p className="shelf-card__meta">
                 {book.finalAge}岁 · {book.mainline} · {book.deathTag}
               </p>
+              {(book.lastPageIndex ?? 0) > 0 && !book.readAt && (
+                <button type="button" className="shelf-card__resume" onClick={() => onOpen(book)}>
+                  续读此生
+                </button>
+              )}
               <button
                 type="button"
                 className="shelf-card__remove"

@@ -4,6 +4,7 @@ import { ORIGINS } from '../data/origins'
 import { TITLES } from '../data/titles'
 import { primaryDeathTag } from './deathTags'
 import { endingDeathUrl, portraitUrl } from './assetResolve'
+import { BRAND } from './brand'
 
 function originName(id: string) {
   return ORIGINS.find((o) => o.id === id)?.name ?? id
@@ -75,7 +76,7 @@ export async function renderShareCard(
 
   ctx.fillStyle = ink
   ctx.font = '26px "ZCOOL XiaoWei", "Songti SC", "Noto Serif SC", serif'
-  ctx.fillText('武侠人生模拟器', 64, 88)
+  ctx.fillText(BRAND.name, 64, 88)
 
   ctx.fillStyle = accent
   ctx.font = '28px "ZCOOL XiaoWei", "Songti SC", "Noto Serif SC", serif'
@@ -190,6 +191,6 @@ export async function downloadShareCard(ending: EndingReport, seed?: number) {
   const canvas = await renderShareCard(ending, seed)
   const a = document.createElement('a')
   a.href = canvas.toDataURL('image/png')
-  a.download = `武侠人生-${ending.character.name}.png`
+  a.download = `${BRAND.name}-${ending.character.name}.png`
   a.click()
 }

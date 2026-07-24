@@ -4,6 +4,7 @@ import type { Character, EndingReport } from '../types'
 import { heartTier } from './utils'
 import { SECT_FINALE_DONE_FLAGS } from './sectPath'
 import { civicMainlineLabel, getCivicPath, hasMajorFaction } from './civicPath'
+import { BRAND } from './brand'
 
 export type MainlineId =
   | '门派'
@@ -179,7 +180,7 @@ export function formatShareText(ending: EndingReport, seed?: number): string {
           .join('、')}`
       : ''
   const lines = [
-    `【武侠人生模拟器】`,
+    `【${BRAND.name}】`,
     `${c.name}${primary ? ` · ${primary}` : ''}（${c.gender}）`,
     identity,
     seed != null ? `种子 ${seed} · 同种不同抉择` : '',
