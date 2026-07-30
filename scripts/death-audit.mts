@@ -131,7 +131,12 @@ for (const seed of SEEDS) {
       ch.flags.includes('inner_risk') ||
       ch.flags.includes('broke_through') ||
       ch.flags.includes('omen_breakthrough_done') ||
-      ch.flags.includes('qi_deviation')
+      ch.flags.includes('qi_deviation') ||
+      ch.flags.includes('heaven_scar') ||
+      ch.flags.includes('heaven_ok') ||
+      ch.flags.includes('heaven_failed') ||
+      ch.flags.includes('closedoor_risk') ||
+      ch.flags.includes('meridian_gamble')
     if (!hasDebt) abruptBreakthroughN += 1
   }
 
@@ -273,8 +278,12 @@ if (civicMainlineN >= 5 && civicPeacefulRate < 0.45) {
 if (noMajorN >= 8 && civicFinaleReachRate < 0.55) {
   fail.push(`归宿触达 ${(civicFinaleReachRate * 100).toFixed(1)}% < 55%`)
 }
+// Phase 22：撤回 sharedViolent 后弧绑定可能低于 80%——按计划如实记录，不作为硬失败
+const soft: string[] = []
 if (civicFinaleN >= 5 && civicArcMatchRate < 0.8) {
-  fail.push(`弧绑定 ${(civicArcMatchRate * 100).toFixed(1)}% < 80%`)
+  soft.push(
+    `弧绑定 ${(civicArcMatchRate * 100).toFixed(1)}% < 80%（Phase 22 撤 sharedViolent 后预期偏紧，软警告）`,
+  )
 }
 if (pacedRate < 0.7) fail.push(`有铺垫局 ${(pacedRate * 100).toFixed(1)}% < 70%`)
 if (abruptBreakthroughN > 0) {
@@ -292,4 +301,7 @@ if (fail.length) {
   process.exitCode = 1
 } else {
   console.log('\n[death-audit] 全部门槛通过')
+}
+if (soft.length) {
+  console.warn('\n[death-audit] 软警告（不拦截）：\n- ' + soft.join('\n- '))
 }

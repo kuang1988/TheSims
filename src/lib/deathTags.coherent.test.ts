@@ -36,13 +36,24 @@ function stub(over: Partial<Character> = {}): Character {
 
 describe('death coherence · 天劫/劫伤', () => {
   it('硬接天劫后体魄归零不可改写成一代宗师无疾', () => {
-    const c = stub({ flags: ['heaven_ok'], realm: '大宗师', attrs: { ...stub().attrs, 体魄: 0 } })
+    const c = stub({ flags: ['heaven_ok', 'heaven_scar'], realm: '大宗师', attrs: { ...stub().attrs, 体魄: 0 } })
     expect(hasViolentDeathContext(c)).toBe(true)
     const reason = flavorBodyDeath(c)
     expect(reason).toMatch(/天劫/)
     expect(rewriteLateDeath(c, reason)).toMatch(/天劫/)
     expect(primaryDeathTag(reason, c)).toBe('突破失败')
     expect(primaryDeathTag(rewriteLateDeath(c, reason), c)).not.toBe('宗师善终')
+  })
+
+  it('劫伤养好后不再按天劫记死因（heaven_ok 是战绩，不是伤）', () => {
+    const c = stub({
+      flags: ['heaven_ok'],
+      realm: '大宗师',
+      age: 72,
+      attrs: { ...stub().attrs, 体魄: 0 },
+    })
+    expect(hasViolentDeathContext(c)).toBe(false)
+    expect(flavorBodyDeath(c)).not.toMatch(/天劫/)
   })
 
   it('渡劫失败保持形神俱灭', () => {

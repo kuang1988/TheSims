@@ -81,3 +81,31 @@ export const SYNERGIES: SynergyDef[] = [
 export function matchSynergies(traitIds: string[]): SynergyDef[] {
   return SYNERGIES.filter((s) => s.requiredTraits.every((t) => traitIds.includes(t)))
 }
+
+/**
+ * 开局若已抽到组合技所需词条之一，有概率强制补齐缺失项，使专属链可达。
+ * 不重写词条系统：只在 createBirth 抽卡后、matchSynergies 前调用。
+ * @returns 可能被补齐后的 traitIds（原地修改并返回同一数组）
+ */
+export function maybeForceSynergyPairs(
+  traitIds: string[],
+  availablePool: { id: string }[],
+  rng: () => number,
+  /** 每组「半对」时补齐概率 */
+  forceProb = 0.35,
+): string[] {
+  const available = new Set(availablePool.map((t) => t.id))
+  for (const syn of SYNERGIES) {
+    if (syn.requiredTraits.length < 2) continue
+    if (syn.requiredTraits.every((t) => traitIds.includes(t))) continue
+    const have = syn.requiredTraits.filter((t) => traitIds.includes(t))
+    if (have.length === 0) continue
+    if (rng() >= forceProb) continue
+    for (const t of syn.requiredTraits) {
+      if (traitIds.includes(t)) continue
+      if (!available.has(t)) continue
+      traitIds.push(t)
+    }
+  }
+  return traitIds
+}

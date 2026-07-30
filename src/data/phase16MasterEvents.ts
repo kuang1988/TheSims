@@ -225,7 +225,7 @@ export const PHASE16_MASTER_EVENTS: EventDef[] = [
   },
   {
     id: 'master_p16_letter',
-    name: '师门来信',
+    name: '师门家书',
     text: '下山后师门来信：师父病危，召你速归。',
     stages: ['青年', '壮年', '晚年'],
     tags: ['武学'],

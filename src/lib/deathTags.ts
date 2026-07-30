@@ -113,7 +113,7 @@ export function isGenericBodyCollapse(reason: string): boolean {
 
 /** 明确叙事横死：不可因「晚年」改写成无疾 */
 export function isNarrativeViolentDeath(reason: string): boolean {
-  return /赐死|情劫|自绝|仇敌|毒|坐化|殉道|走火|突破|天劫|渡劫|劳伤|债逼|致仕|工坊|走镖|狱中|伤重|崩解|元气|仇杀|败亡|未报|血战|战死|暗算|形神|经脉/.test(
+  return /赐死|情劫|自绝|仇敌|毒|坐化|殉道|走火|突破|天劫|渡劫|劳伤|债逼|致仕|工坊|走镖|狱中|伤重|崩解|元气|仇杀|败亡|未报|血战|战死|暗算|形神|经脉|背叛/.test(
     reason,
   )
 }
@@ -130,13 +130,15 @@ export function normalizeDeathReason(reason: string): string {
 /** 是否存在「横死语境」（不宜改写成寿终） */
 export function hasViolentDeathContext(c: Character): boolean {
   if (c.flags.includes('enemy_due')) return true
-  if (c.flags.includes('poisoned') || c.flags.includes('qi_deviation')) return true
+  if (c.flags.includes('poisoned_once') || c.flags.includes('qi_deviation')) return true
   if (c.flags.includes('sect_martyr')) return true
   if (c.flags.includes('hunted_student')) return true
-  if (c.flags.includes('heaven_failed') || c.flags.includes('heaven_struck')) return true
-  if (c.flags.includes('heaven_ok') && c.attrs.体魄 <= 0) return true
-  // 刚闭关硬闯：体魄崩解时不可改写成坐化
-  if (c.flags.includes('closedoor_risk') && c.attrs.体魄 <= 0) return true
+  if (c.flags.includes('heaven_failed')) return true
+  // 用会自愈的 heaven_scar 而非永久的 heaven_ok：渡劫成功者静养多年后自然故去，不该记成劫伤致死
+  if (c.flags.includes('heaven_scar') && c.attrs.体魄 <= 0) return true
+  // 刚闭关硬闯：closedoor_risk 是跨岁即卸的急性旗，死时还带着它就说明就是当年硬闯的，
+  // 无论体魄是否归零（也可能是寿元到顶）都不可改写成坐化/无疾。
+  if (c.flags.includes('closedoor_risk')) return true
   // 破境预警已落且未安全破境：体魄崩或队列未清时视为横死语境
   if (
     c.flags.includes('inner_risk') &&
@@ -167,7 +169,7 @@ export function flavorCivicDeath(c: Character): string | null {
   if (c.flags.includes('debt_ruin')) return '商途债逼，郁郁而终'
   if (c.flags.includes('workshop_accident')) return '工坊意外，伤重不治'
   if (c.flags.includes('road_hazard')) return '江湖走镖，命丧途中'
-  if (c.flags.includes('jail_death') || (c.flags.includes('fugitive') && c.flags.includes('civic_shi_finale'))) {
+  if (c.flags.includes('fugitive') && c.flags.includes('civic_shi_finale')) {
     return '恶名缠身，狱中而终'
   }
 
@@ -198,8 +200,6 @@ export function flavorCivicDeath(c: Character): string | null {
 /** 归宿旗下死因是否落在本业允许表 */
 export function civicArcDeathMatch(deathReason: string, c: Character): boolean | null {
   const tag = primaryDeathTag(deathReason, c)
-  // 各凡尘弧共通：明确横死/劫伤仍算「说得通」，勿为抬善终率而改写
-  const sharedViolent = ['突破失败', '伤重不治', '战死沙场', '仇敌寻仇', '毒发身亡', '门人反噬', '遭人暗算']
   if (c.flags.includes('civic_shi_finale')) {
     return [
       '致仕而终',
@@ -210,19 +210,18 @@ export function civicArcDeathMatch(deathReason: string, c: Character): boolean |
       '遭人暗算',
       '朝廷赐死',
       '宗师善终',
-      ...sharedViolent,
+      '仇敌寻仇',
+      '门人反噬',
     ].includes(tag)
   }
   if (c.flags.includes('civic_nong_finale')) {
-    return ['劳伤而终', '病榻而终', '寿终正寝', '隐世而终', '伤重不治', ...sharedViolent].includes(tag)
+    return ['劳伤而终', '病榻而终', '寿终正寝', '隐世而终', '伤重不治', '门人反噬', '仇敌寻仇'].includes(tag)
   }
   if (c.flags.includes('civic_gong_finale')) {
-    return ['工伤而终', '病榻而终', '寿终正寝', '伤重不治', '隐世而终', '宗师善终', ...sharedViolent].includes(
-      tag,
-    )
+    return ['工伤而终', '病榻而终', '寿终正寝', '伤重不治', '隐世而终', '宗师善终'].includes(tag)
   }
   if (c.flags.includes('civic_shang_finale')) {
-    return ['债逼而终', '寿终正寝', '病榻而终', '隐世而终', '遭人暗算', '伤重不治', ...sharedViolent].includes(
+    return ['债逼而终', '寿终正寝', '病榻而终', '隐世而终', '遭人暗算', '伤重不治', '仇敌寻仇'].includes(
       tag,
     )
   }
@@ -236,7 +235,6 @@ export function civicArcDeathMatch(deathReason: string, c: Character): boolean |
       '伤重不治',
       '门人反噬',
       '宗师善终',
-      ...sharedViolent,
     ].includes(tag)
   }
   return null
@@ -260,10 +258,10 @@ export function flavorBodyDeath(c: Character): string {
   if (c.flags.includes('revenge_pursuit') && c.attrs.体魄 <= 0) {
     return '寻仇途中，伤重不治'
   }
-  if (c.flags.includes('heaven_failed') || c.flags.includes('heaven_struck')) {
+  if (c.flags.includes('heaven_failed')) {
     return '渡劫失败，形神俱灭'
   }
-  if (c.flags.includes('heaven_ok')) {
+  if (c.flags.includes('heaven_scar')) {
     return '天劫余伤，元气尽散'
   }
   if (c.flags.includes('qi_deviation') || c.flags.includes('meridian_gamble') || c.flags.includes('closedoor_risk')) {
@@ -299,7 +297,7 @@ export function flavorBodyDeath(c: Character): string {
     return '体魄崩解，伤重不治'
   }
   if (
-    c.flags.includes('poisoned') ||
+    c.flags.includes('poisoned_once') ||
     (c.flags.includes('chronic_illness') && c.flags.includes('emei_poison_kept'))
   ) {
     return '毒发身亡'
@@ -429,7 +427,6 @@ export function deathIdentityMismatch(deathReason: string, c: Character): string
   if (
     (tag === '寿终正寝' || tag === '宗师善终' || tag === '隐世而终') &&
     (c.flags.includes('heaven_failed') ||
-      c.flags.includes('heaven_struck') ||
       c.flags.includes('qi_deviation') ||
       c.flags.includes('closedoor_risk'))
   ) {
@@ -469,7 +466,7 @@ export function sanitizeDeathReason(c: Character, reason: string): string {
         ? flavorLifespanDeath(c)
         : '体魄崩解，伤重不治')
   }
-  if (/背叛/.test(r) && hasCivicPath(c) && c.flags.some((f) => f.endsWith('_finale')) && !c.flags.includes('hunted_student')) {
+  if (/背叛/.test(r) && hasCivicPath(c) && c.flags.some((f) => f.endsWith('_finale')) && !hasStudentContext(c)) {
     r = flavorCivicDeath(c) ?? flavorLifespanDeath(c)
   }
   if ((/战死沙场/.test(r)) && !hasBattlefieldContext(c)) {
@@ -503,8 +500,8 @@ export function sanitizeDeathReason(c: Character, reason: string): string {
       r = flavorCivicDeath(c) ?? (c.age >= 55 ? flavorLifespanDeath(c) : '体魄崩解，伤重不治')
     }
   }
-  // 凡尘归宿后：死因必须落在本业允许表
-  if (civicArcDeathMatch(r, c) === false) {
+  // 凡尘归宿后：无特征死才改本业；已通过上文身份校验的叙事横死保留
+  if (civicArcDeathMatch(r, c) === false && !isNarrativeViolentDeath(r)) {
     r = flavorCivicDeath(c) ?? (c.age >= 55 ? flavorLifespanDeath(c) : '沉疴不起，病榻而终')
   }
   return r
@@ -548,8 +545,12 @@ export function rewriteLateDeath(c: Character, reason: string): string {
 
 export function trySparePrematureDeath(c: Character, reason: string): boolean {
   if (c.age >= Math.floor(c.lifespan * 0.78)) return false
-  // 门人反噬：非追杀徒也赦免一次，压热度
-  if (/背叛/.test(reason) && !c.flags.includes('hunted_student')) {
+  // 真·门人反噬（追杀徒/同段追杀烙印）：不可豁免，否则「不还手」会被救活再写成善终
+  if (/背叛/.test(reason) && (c.flags.includes('hunted_student') || c.flags.includes('betrayal_pursuit'))) {
+    return false
+  }
+  // 无追杀语境的「背叛」文案：赦免一次，压热度
+  if (/背叛/.test(reason)) {
     if (c.flags.includes('fate_death_spared')) return false
     c.flags.push('fate_death_spared')
     c.attrs.体魄 = Math.max(12, c.attrs.体魄 || 0)

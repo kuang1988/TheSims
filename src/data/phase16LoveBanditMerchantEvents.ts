@@ -225,7 +225,7 @@ export const PHASE16_LOVE_BANDIT_MERCHANT_EVENTS: EventDef[] = [
   },
   {
     id: 'p16_love_reunion',
-    name: '故人重逢',
+    name: '道侣重逢',
     text: '多年后在茶亭，她鬓已霜。',
     stages: ['青年', '壮年', '晚年'],
     tags: ['情缘'],
@@ -304,8 +304,8 @@ export const PHASE16_LOVE_BANDIT_MERCHANT_EVENTS: EventDef[] = [
     once: true,
     conditions: { anyFlags: ['lover', 'p16_love_active', 'married'] },
     choices: [
-      { text: '深情以待', effects: { addFlags: ['lover', 'p16_love_active'], attrs: { 魅力: 2, 心性: 2 }, setRelation: { kind: '道侣', name: '桥头佳人', bond: 55 } }, tendencyTags: ['交际'] },
-      { text: '克制距离', effects: { attrs: { 心性: 1 }, addFlag: 'p16_love_hesitate', logExtra: '你转身，雨声掩心跳。' }, tendencyTags: ['谨慎'] },
+      { text: '深情以待', effects: { addFlags: ['lover', 'p16_love_active', 'p16_love_done'], attrs: { 魅力: 2, 心性: 2 }, setRelation: { kind: '道侣', name: '桥头佳人', bond: 55 } }, tendencyTags: ['交际'] },
+      { text: '克制距离', effects: { attrs: { 心性: 1 }, addFlags: ['p16_love_hesitate', 'p16_love_done'], logExtra: '你转身，雨声掩心跳。' }, tendencyTags: ['谨慎'] },
     ],
   },
   {
@@ -576,8 +576,8 @@ export const PHASE16_LOVE_BANDIT_MERCHANT_EVENTS: EventDef[] = [
     once: true,
     conditions: { anyFlags: ['became_bandit', 'bandit_camp', 'p16_bandit_active'] },
     choices: [
-      { text: '依寨规行', effects: { addFlags: ['became_bandit', 'bandit_camp', 'p16_bandit_active'], attrs: { 邪道威名: 5, 财富: 3 } }, tendencyTags: ['狠厉'] },
-      { text: '心生不忍', effects: { attrs: { 心性: 2, 邪道威名: -2 }, addFlag: 'p16_bandit_mercy', logExtra: '兄弟笑你妇人之仁。' }, tendencyTags: ['侠义'] },
+      { text: '依寨规行', effects: { addFlags: ['became_bandit', 'bandit_camp', 'p16_bandit_active', 'p16_bandit_done'], attrs: { 邪道威名: 5, 财富: 3 } }, tendencyTags: ['狠厉'] },
+      { text: '心生不忍', effects: { attrs: { 心性: 2, 邪道威名: -2 }, addFlags: ['p16_bandit_mercy', 'p16_bandit_done'], logExtra: '兄弟笑你妇人之仁。' }, tendencyTags: ['侠义'] },
     ],
   },
   {
@@ -848,8 +848,8 @@ export const PHASE16_LOVE_BANDIT_MERCHANT_EVENTS: EventDef[] = [
     once: true,
     conditions: { anyFlags: ['merchant_path', 'p16_merchant_active'] },
     choices: [
-      { text: '逐利而行', effects: { addFlags: ['merchant_path', 'p16_merchant_active'], attrs: { 财富: 12 } }, tendencyTags: ['贪婪'] },
-      { text: '守法经营', effects: { attrs: { 心性: 2, 正道声望: 2 }, addFlag: 'p16_merchant_honest', logExtra: '利薄，名却稳。' }, tendencyTags: ['谨慎'] },
+      { text: '逐利而行', effects: { addFlags: ['merchant_path', 'p16_merchant_active', 'p16_merchant_done'], attrs: { 财富: 12 } }, tendencyTags: ['贪婪'] },
+      { text: '守法经营', effects: { attrs: { 心性: 2, 正道声望: 2 }, addFlags: ['p16_merchant_honest', 'p16_merchant_done'], logExtra: '利薄，名却稳。' }, tendencyTags: ['谨慎'] },
     ],
   },
 ]

@@ -15,7 +15,7 @@ export const DEATH_PACE_FLAGS = [
   'inner_risk',
   'broke_through',
   'hunted_student',
-  'poisoned',
+  'poisoned_once',
   'emei_poison_kept',
   'duyi_path',
   'lost_lover',
@@ -58,7 +58,7 @@ export function ensureDeathPaceQueues(c: Character): void {
 
   if (
     c.age >= 30 &&
-    (c.flags.includes('poisoned') ||
+    (c.flags.includes('poisoned_once') ||
       c.flags.includes('emei_poison_kept') ||
       c.flags.includes('duyi_path')) &&
     !c.flags.includes('poison_cleared') &&

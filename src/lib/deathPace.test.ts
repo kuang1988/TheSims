@@ -53,7 +53,7 @@ describe('deathPace', () => {
     ensureDeathPaceQueues(court)
     expect(court.eventQueue.some((q) => q.eventId === 'omen_court_wind')).toBe(true)
 
-    const poison = stubChar({ flags: ['poisoned'] })
+    const poison = stubChar({ flags: ['poisoned_once'] })
     ensureDeathPaceQueues(poison)
     expect(poison.eventQueue.some((q) => q.eventId === 'omen_poison_tide')).toBe(true)
 

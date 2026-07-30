@@ -1155,7 +1155,7 @@ export const PHASE3_EVENTS: EventDef[] = [
   },
   {
     id: 'emei_inner_trial',
-    name: '内门大考',
+    name: '峨眉内门大比',
     text: '金顶论剑，你与数名同门角逐内门。须以峨眉剑意接掌门三招。',
     stages: ['青年', '壮年'],
     tags: ['门派', '战斗'],
@@ -1199,7 +1199,7 @@ export const PHASE3_EVENTS: EventDef[] = [
   },
   {
     id: 'emei_master_succession',
-    name: '掌门传位',
+    name: '峨眉掌门传位',
     text: '老掌门欲传位于你。门中长老有异议，称你资历尚浅。你如何抉择？',
     stages: ['壮年'],
     tags: ['门派', '称号'],
@@ -3062,7 +3062,7 @@ export const PHASE3_EVENTS: EventDef[] = [
   },
   {
     id: 'wanderer_hermit_teach',
-    name: '隐士传功',
+    name: '山中隐士传功',
     text: '深山中遇一隐士，见你根骨，愿传你三招。但须答应：不为恶，不张扬。',
     stages: ['青年', '壮年'],
     tags: ['奇遇', '武学'],

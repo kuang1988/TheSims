@@ -153,7 +153,7 @@ export const PHASE17_CONNECT_EVENTS: EventDef[] = [
     conditions: { anyFlags: ['poison_path', 'poison_scholar', 'poison_dark'] },
     choices: [
       { text: '以蛊入毒', effects: { addMartialArt: 'gujing', addFlag: 'p17_gujing', attrs: { 邪道威名: 6, 心性: -4 }, grantTitle: 'duwang', logExtra: '谷中毒虫似向你俯首。' }, tendencyTags: ['狠厉'] },
-      { text: '以蛊入医', effects: { addMartialArt: 'gujing', addFlag: 'p17_gujing_med', attrs: { 心性: 3 }, grantTitle: 'duyi', logExtra: '你把残卷改写成医方。' }, tendencyTags: ['侠义'] },
+      { text: '以蛊入医', effects: { addMartialArt: 'gujing', addFlags: ['p17_gujing_med', 'duyi_path'], attrs: { 心性: 3 }, grantTitle: 'duyi', logExtra: '你把残卷改写成医方。' }, tendencyTags: ['侠义'] },
     ],
   },
   {

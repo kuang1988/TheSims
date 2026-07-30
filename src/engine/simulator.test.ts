@@ -198,6 +198,17 @@ describe('phase2 combat & relations', () => {
     expect(c.eventQueue.some((q) => q.eventId === 'synergy_jianxin_trial')).toBe(true)
   })
 
+  it('半对词条时有机会强制补齐 synergy', () => {
+    // 固定种子下多抽几次：至少有一局补齐 jiangu+qingxin 或 renxin+haoxia 等
+    let hit = 0
+    for (let i = 0; i < 80; i++) {
+      const c = createBirth(9000 + i * 17, '男', { lockedTraitIds: ['jiangu'] })
+      expect(c.traitIds).toContain('jiangu')
+      if (c.traitIds.includes('qingxin') && c.flags.includes('synergy_jianxin')) hit += 1
+    }
+    expect(hit).toBeGreaterThan(5)
+  })
+
   it('respects locked trait on birth', () => {
     const c = createBirth(555, '男', { lockedTraitIds: ['renxin'] })
     expect(c.traitIds).toContain('renxin')
@@ -663,6 +674,53 @@ describe('§4.1 story coherence', () => {
     }
     expect(picks.has(suicide.text)).toBe(false)
     expect([...picks].some((t) => t.includes('执手') || t.includes('好聚'))).toBe(true)
+  })
+
+  it('战力远逊时不硬闯破境之劫，胜算充足时才敢闯', () => {
+    const ev = EVENTS.find((e) => e.id === 'death_breakthrough')!
+    const hard = ev.choices.find((ch) => ch.text.includes('硬闯'))!
+    const foePower = hard.effects.combat!.foePower
+
+    const weak = createBirth(311)
+    weak.age = 45
+    weak.attrs.福缘 = 50
+    weak.force = 0
+    weak.attrs.根骨 = 5
+    weak.attrs.悟性 = 5
+    expect(calcForce(weak)).toBeLessThan(foePower - 4)
+
+    const weakPicks = new Set<string>()
+    for (let i = 0; i < 60; i++) weakPicks.add(autoPickChoice(weak, ev.choices, createRng(500 + i)).text)
+    expect(weakPicks.has(hard.text)).toBe(false)
+
+    const strong = createBirth(312)
+    strong.age = 45
+    strong.attrs.福缘 = 60
+    strong.force = 200
+    expect(calcForce(strong)).toBeGreaterThan(foePower + 20)
+
+    const strongPicks = new Set<string>()
+    for (let i = 0; i < 60; i++) strongPicks.add(autoPickChoice(strong, ev.choices, createRng(500 + i)).text)
+    expect(strongPicks.has(hard.text)).toBe(true)
+  })
+
+  it('同题存在致死选项时，不因扣血而放弃那条活路', () => {
+    const ev = EVENTS.find((e) => e.id === 'death_court_edict')!
+    const lethal = ev.choices.find((ch) => ch.effects.death)!
+    const escape = ev.choices.find((ch) => !ch.effects.death)!
+
+    const c = createBirth(313)
+    c.age = 50
+    c.attrs.心性 = -30 // 偏邪：会给「饮鸩遵旨」的狠厉标签加分
+    c.attrs.体魄 = 16 // 低于出逃代价，旧逻辑会把活路压到死路之下
+    c.flags.push('official', 'omen_court_done')
+
+    let escapeN = 0
+    for (let i = 0; i < 80; i++) {
+      if (autoPickChoice(c, ev.choices, createRng(900 + i)).text === escape.text) escapeN += 1
+    }
+    expect(lethal.effects.death).toBeTruthy()
+    expect(escapeN).toBeGreaterThan(40)
   })
 
   it('仇敌拍1获胜后不再排队仇敌终局', () => {

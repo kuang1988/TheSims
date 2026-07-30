@@ -97,7 +97,7 @@ export const PHASE20_DEATH_PACE_EVENTS: EventDef[] = [
     once: true,
     minAge: 28,
     conditions: {
-      anyFlags: ['poisoned', 'emei_poison_kept', 'duyi_path'],
+      anyFlags: ['poisoned_once', 'emei_poison_kept', 'duyi_path'],
       forbidFlags: ['poison_cleared', 'omen_poison_done'],
     },
     choices: [

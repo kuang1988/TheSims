@@ -11,6 +11,8 @@ export const PHASE2_EVENTS: EventDef[] = [
     weight: 1,
     importance: 5,
     needsChoice: true,
+    maxTimes: 3,
+    cooldownYears: 6,
     conditions: { flags: ['enemy_due'] },
     choices: [
       {

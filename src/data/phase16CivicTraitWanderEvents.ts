@@ -254,8 +254,8 @@ export const PHASE16_CIVIC_TRAIT_WANDER_EVENTS: EventDef[] = [
     once: true,
     conditions: { traits: ['guomu'] },
     choices: [
-      { text: '顺命而行', effects: { addFlag: 'p16_trait_guomu_hook', attrs: { 福缘: 3, 悟性: 1 }, queueEvent: { id: 'p16_wander_echo', delayYears: 4 }, logExtra: '你心有所感，记下了这一日。' }, tendencyTags: ['冒险'] },
-      { text: '逆命一试', effects: { addFlag: 'p16_trait_guomu_rebel', setRelation: { kind: '挚友', name: '同命路人', bond: 30 }, logExtra: '路人叹：你倒不像寻常人。' }, tendencyTags: ['谨慎'] },
+      { text: '顺命而行', effects: { addFlag: 'p16_trait_guomu_hook', attrs: { 福缘: 3, 悟性: 1 }, queueEvent: { id: 'p16_wander_echo', delayYears: 4 }, logExtra: '你默默点头，把这一幕收进心底。' }, tendencyTags: ['冒险'] },
+      { text: '逆命一试', effects: { addFlag: 'p16_trait_guomu_rebel', setRelation: { kind: '挚友', name: '同命路人', bond: 30 }, logExtra: '旁人侧目：这人眼中有光。' }, tendencyTags: ['谨慎'] },
     ],
   },
   {
@@ -270,8 +270,8 @@ export const PHASE16_CIVIC_TRAIT_WANDER_EVENTS: EventDef[] = [
     once: true,
     conditions: { traits: ['fuxing'] },
     choices: [
-      { text: '顺命而行', effects: { addFlag: 'p16_trait_fuxing_hook', attrs: { 福缘: 4, 悟性: 1 }, queueEvent: { id: 'p16_wander_echo', delayYears: 5 }, logExtra: '你心有所感，记下了这一日。' }, tendencyTags: ['冒险'] },
-      { text: '逆命一试', effects: { addFlag: 'p16_trait_fuxing_rebel', setRelation: { kind: '挚友', name: '同命路人', bond: 30 }, logExtra: '路人叹：你倒不像寻常人。' }, tendencyTags: ['谨慎'] },
+      { text: '顺命而行', effects: { addFlag: 'p16_trait_fuxing_hook', attrs: { 福缘: 4, 悟性: 1 }, queueEvent: { id: 'p16_wander_echo', delayYears: 5 }, logExtra: '冥冥中似有牵引，你没有错过。' }, tendencyTags: ['冒险'] },
+      { text: '逆命一试', effects: { addFlag: 'p16_trait_fuxing_rebel', setRelation: { kind: '挚友', name: '同命路人', bond: 30 }, logExtra: '同路者低语：此人骨相不凡。' }, tendencyTags: ['谨慎'] },
     ],
   },
   {
@@ -286,8 +286,8 @@ export const PHASE16_CIVIC_TRAIT_WANDER_EVENTS: EventDef[] = [
     once: true,
     conditions: { traits: ['hongyan'] },
     choices: [
-      { text: '顺命而行', effects: { addFlag: 'p16_trait_hongyan_hook', attrs: { 福缘: 2, 悟性: 1 }, queueEvent: { id: 'p16_wander_echo', delayYears: 6 }, logExtra: '你心有所感，记下了这一日。' }, tendencyTags: ['冒险'] },
-      { text: '逆命一试', effects: { addFlag: 'p16_trait_hongyan_rebel', setRelation: { kind: '挚友', name: '同命路人', bond: 30 }, logExtra: '路人叹：你倒不像寻常人。' }, tendencyTags: ['谨慎'] },
+      { text: '顺命而行', effects: { addFlag: 'p16_trait_hongyan_hook', attrs: { 福缘: 2, 悟性: 1 }, queueEvent: { id: 'p16_wander_echo', delayYears: 6 }, logExtra: '你将这一日铭刻于心，以待后缘。' }, tendencyTags: ['冒险'] },
+      { text: '逆命一试', effects: { addFlag: 'p16_trait_hongyan_rebel', setRelation: { kind: '挚友', name: '同命路人', bond: 30 }, logExtra: '有人摇头笑：偏要逆着来。' }, tendencyTags: ['谨慎'] },
     ],
   },
   {
@@ -302,8 +302,8 @@ export const PHASE16_CIVIC_TRAIT_WANDER_EVENTS: EventDef[] = [
     once: true,
     conditions: { traits: ['zhanshen'] },
     choices: [
-      { text: '顺命而行', effects: { addFlag: 'p16_trait_zhanshen_hook', attrs: { 福缘: 3, 悟性: 1 }, queueEvent: { id: 'p16_wander_echo', delayYears: 3 }, logExtra: '你心有所感，记下了这一日。' }, tendencyTags: ['冒险'] },
-      { text: '逆命一试', effects: { addFlag: 'p16_trait_zhanshen_rebel', setRelation: { kind: '挚友', name: '同命路人', bond: 30 }, logExtra: '路人叹：你倒不像寻常人。' }, tendencyTags: ['谨慎'] },
+      { text: '顺命而行', effects: { addFlag: 'p16_trait_zhanshen_hook', attrs: { 福缘: 3, 悟性: 1 }, queueEvent: { id: 'p16_wander_echo', delayYears: 3 }, logExtra: '机缘暗合，你选择顺流而行。' }, tendencyTags: ['冒险'] },
+      { text: '逆命一试', effects: { addFlag: 'p16_trait_zhanshen_rebel', setRelation: { kind: '挚友', name: '同命路人', bond: 30 }, logExtra: '路人止步：倒像见过你似的。' }, tendencyTags: ['谨慎'] },
     ],
   },
   {
@@ -318,8 +318,8 @@ export const PHASE16_CIVIC_TRAIT_WANDER_EVENTS: EventDef[] = [
     once: true,
     conditions: { traits: ['yinshi'] },
     choices: [
-      { text: '顺命而行', effects: { addFlag: 'p16_trait_yinshi_hook', attrs: { 福缘: 4, 悟性: 1 }, queueEvent: { id: 'p16_wander_echo', delayYears: 4 }, logExtra: '你心有所感，记下了这一日。' }, tendencyTags: ['冒险'] },
-      { text: '逆命一试', effects: { addFlag: 'p16_trait_yinshi_rebel', setRelation: { kind: '挚友', name: '同命路人', bond: 30 }, logExtra: '路人叹：你倒不像寻常人。' }, tendencyTags: ['谨慎'] },
+      { text: '顺命而行', effects: { addFlag: 'p16_trait_yinshi_hook', attrs: { 福缘: 4, 悟性: 1 }, queueEvent: { id: 'p16_wander_echo', delayYears: 4 }, logExtra: '你觉命途有应，便依此而行。' }, tendencyTags: ['冒险'] },
+      { text: '逆命一试', effects: { addFlag: 'p16_trait_yinshi_rebel', setRelation: { kind: '挚友', name: '同命路人', bond: 30 }, logExtra: '旁人低声：这人不好惹。' }, tendencyTags: ['谨慎'] },
     ],
   },
   {
@@ -350,8 +350,8 @@ export const PHASE16_CIVIC_TRAIT_WANDER_EVENTS: EventDef[] = [
     once: true,
     conditions: { traits: ['renxin'] },
     choices: [
-      { text: '顺命而行', effects: { addFlag: 'p16_trait_renxin_hook', attrs: { 福缘: 3, 悟性: 1 }, queueEvent: { id: 'p16_wander_echo', delayYears: 6 }, logExtra: '你心有所感，记下了这一日。' }, tendencyTags: ['冒险'] },
-      { text: '逆命一试', effects: { addFlag: 'p16_trait_renxin_rebel', setRelation: { kind: '挚友', name: '同命路人', bond: 30 }, logExtra: '路人叹：你倒不像寻常人。' }, tendencyTags: ['谨慎'] },
+      { text: '顺命而行', effects: { addFlag: 'p16_trait_renxin_hook', attrs: { 福缘: 3, 悟性: 1 }, queueEvent: { id: 'p16_wander_echo', delayYears: 6 }, logExtra: '你默默点头，把这一幕收进心底。' }, tendencyTags: ['冒险'] },
+      { text: '逆命一试', effects: { addFlag: 'p16_trait_renxin_rebel', setRelation: { kind: '挚友', name: '同命路人', bond: 30 }, logExtra: '旁人侧目：这人眼中有光。' }, tendencyTags: ['谨慎'] },
     ],
   },
   {
@@ -366,8 +366,8 @@ export const PHASE16_CIVIC_TRAIT_WANDER_EVENTS: EventDef[] = [
     once: true,
     conditions: { traits: ['koucai'] },
     choices: [
-      { text: '顺命而行', effects: { addFlag: 'p16_trait_koucai_hook', attrs: { 福缘: 4, 悟性: 1 }, queueEvent: { id: 'p16_wander_echo', delayYears: 3 }, logExtra: '你心有所感，记下了这一日。' }, tendencyTags: ['冒险'] },
-      { text: '逆命一试', effects: { addFlag: 'p16_trait_koucai_rebel', setRelation: { kind: '挚友', name: '同命路人', bond: 30 }, logExtra: '路人叹：你倒不像寻常人。' }, tendencyTags: ['谨慎'] },
+      { text: '顺命而行', effects: { addFlag: 'p16_trait_koucai_hook', attrs: { 福缘: 4, 悟性: 1 }, queueEvent: { id: 'p16_wander_echo', delayYears: 3 }, logExtra: '冥冥中似有牵引，你没有错过。' }, tendencyTags: ['冒险'] },
+      { text: '逆命一试', effects: { addFlag: 'p16_trait_koucai_rebel', setRelation: { kind: '挚友', name: '同命路人', bond: 30 }, logExtra: '同路者低语：此人骨相不凡。' }, tendencyTags: ['谨慎'] },
     ],
   },
   {
@@ -382,8 +382,8 @@ export const PHASE16_CIVIC_TRAIT_WANDER_EVENTS: EventDef[] = [
     once: true,
     conditions: { traits: ['duangu'] },
     choices: [
-      { text: '顺命而行', effects: { addFlag: 'p16_trait_duangu_hook', attrs: { 福缘: 2, 悟性: 1 }, queueEvent: { id: 'p16_wander_echo', delayYears: 4 }, logExtra: '你心有所感，记下了这一日。' }, tendencyTags: ['冒险'] },
-      { text: '逆命一试', effects: { addFlag: 'p16_trait_duangu_rebel', setRelation: { kind: '挚友', name: '同命路人', bond: 30 }, logExtra: '路人叹：你倒不像寻常人。' }, tendencyTags: ['谨慎'] },
+      { text: '顺命而行', effects: { addFlag: 'p16_trait_duangu_hook', attrs: { 福缘: 2, 悟性: 1 }, queueEvent: { id: 'p16_wander_echo', delayYears: 4 }, logExtra: '你将这一日铭刻于心，以待后缘。' }, tendencyTags: ['冒险'] },
+      { text: '逆命一试', effects: { addFlag: 'p16_trait_duangu_rebel', setRelation: { kind: '挚友', name: '同命路人', bond: 30 }, logExtra: '有人摇头笑：偏要逆着来。' }, tendencyTags: ['谨慎'] },
     ],
   },
   {
@@ -398,8 +398,8 @@ export const PHASE16_CIVIC_TRAIT_WANDER_EVENTS: EventDef[] = [
     once: true,
     conditions: { traits: ['changming'] },
     choices: [
-      { text: '顺命而行', effects: { addFlag: 'p16_trait_changming_hook', attrs: { 福缘: 3, 悟性: 1 }, queueEvent: { id: 'p16_wander_echo', delayYears: 5 }, logExtra: '你心有所感，记下了这一日。' }, tendencyTags: ['冒险'] },
-      { text: '逆命一试', effects: { addFlag: 'p16_trait_changming_rebel', setRelation: { kind: '挚友', name: '同命路人', bond: 30 }, logExtra: '路人叹：你倒不像寻常人。' }, tendencyTags: ['谨慎'] },
+      { text: '顺命而行', effects: { addFlag: 'p16_trait_changming_hook', attrs: { 福缘: 3, 悟性: 1 }, queueEvent: { id: 'p16_wander_echo', delayYears: 5 }, logExtra: '机缘暗合，你选择顺流而行。' }, tendencyTags: ['冒险'] },
+      { text: '逆命一试', effects: { addFlag: 'p16_trait_changming_rebel', setRelation: { kind: '挚友', name: '同命路人', bond: 30 }, logExtra: '路人止步：倒像见过你似的。' }, tendencyTags: ['谨慎'] },
     ],
   },
   {
@@ -414,8 +414,8 @@ export const PHASE16_CIVIC_TRAIT_WANDER_EVENTS: EventDef[] = [
     once: true,
     conditions: { traits: ['tanlan'] },
     choices: [
-      { text: '顺命而行', effects: { addFlag: 'p16_trait_tanlan_hook', attrs: { 福缘: 4, 悟性: 1 }, queueEvent: { id: 'p16_wander_echo', delayYears: 6 }, logExtra: '你心有所感，记下了这一日。' }, tendencyTags: ['冒险'] },
-      { text: '逆命一试', effects: { addFlag: 'p16_trait_tanlan_rebel', setRelation: { kind: '挚友', name: '同命路人', bond: 30 }, logExtra: '路人叹：你倒不像寻常人。' }, tendencyTags: ['谨慎'] },
+      { text: '顺命而行', effects: { addFlag: 'p16_trait_tanlan_hook', attrs: { 福缘: 4, 悟性: 1 }, queueEvent: { id: 'p16_wander_echo', delayYears: 6 }, logExtra: '你觉命途有应，便依此而行。' }, tendencyTags: ['冒险'] },
+      { text: '逆命一试', effects: { addFlag: 'p16_trait_tanlan_rebel', setRelation: { kind: '挚友', name: '同命路人', bond: 30 }, logExtra: '旁人低声：这人不好惹。' }, tendencyTags: ['谨慎'] },
     ],
   },
   {
@@ -446,8 +446,8 @@ export const PHASE16_CIVIC_TRAIT_WANDER_EVENTS: EventDef[] = [
     once: true,
     conditions: { traits: ['yeguai'] },
     choices: [
-      { text: '顺命而行', effects: { addFlag: 'p16_trait_yeguai_hook', attrs: { 福缘: 3, 悟性: 1 }, queueEvent: { id: 'p16_wander_echo', delayYears: 4 }, logExtra: '你心有所感，记下了这一日。' }, tendencyTags: ['冒险'] },
-      { text: '逆命一试', effects: { addFlag: 'p16_trait_yeguai_rebel', setRelation: { kind: '挚友', name: '同命路人', bond: 30 }, logExtra: '路人叹：你倒不像寻常人。' }, tendencyTags: ['谨慎'] },
+      { text: '顺命而行', effects: { addFlag: 'p16_trait_yeguai_hook', attrs: { 福缘: 3, 悟性: 1 }, queueEvent: { id: 'p16_wander_echo', delayYears: 4 }, logExtra: '你默默点头，把这一幕收进心底。' }, tendencyTags: ['冒险'] },
+      { text: '逆命一试', effects: { addFlag: 'p16_trait_yeguai_rebel', setRelation: { kind: '挚友', name: '同命路人', bond: 30 }, logExtra: '旁人侧目：这人眼中有光。' }, tendencyTags: ['谨慎'] },
     ],
   },
   {
@@ -462,8 +462,8 @@ export const PHASE16_CIVIC_TRAIT_WANDER_EVENTS: EventDef[] = [
     once: true,
     conditions: { traits: ['haoxia'] },
     choices: [
-      { text: '顺命而行', effects: { addFlag: 'p16_trait_haoxia_hook', attrs: { 福缘: 4, 悟性: 1 }, queueEvent: { id: 'p16_wander_echo', delayYears: 5 }, logExtra: '你心有所感，记下了这一日。' }, tendencyTags: ['冒险'] },
-      { text: '逆命一试', effects: { addFlag: 'p16_trait_haoxia_rebel', setRelation: { kind: '挚友', name: '同命路人', bond: 30 }, logExtra: '路人叹：你倒不像寻常人。' }, tendencyTags: ['谨慎'] },
+      { text: '顺命而行', effects: { addFlag: 'p16_trait_haoxia_hook', attrs: { 福缘: 4, 悟性: 1 }, queueEvent: { id: 'p16_wander_echo', delayYears: 5 }, logExtra: '冥冥中似有牵引，你没有错过。' }, tendencyTags: ['冒险'] },
+      { text: '逆命一试', effects: { addFlag: 'p16_trait_haoxia_rebel', setRelation: { kind: '挚友', name: '同命路人', bond: 30 }, logExtra: '同路者低语：此人骨相不凡。' }, tendencyTags: ['谨慎'] },
     ],
   },
   {
@@ -478,8 +478,8 @@ export const PHASE16_CIVIC_TRAIT_WANDER_EVENTS: EventDef[] = [
     once: true,
     conditions: { traits: ['bingruo'] },
     choices: [
-      { text: '顺命而行', effects: { addFlag: 'p16_trait_bingruo_hook', attrs: { 福缘: 2, 悟性: 1 }, queueEvent: { id: 'p16_wander_echo', delayYears: 6 }, logExtra: '你心有所感，记下了这一日。' }, tendencyTags: ['冒险'] },
-      { text: '逆命一试', effects: { addFlag: 'p16_trait_bingruo_rebel', setRelation: { kind: '挚友', name: '同命路人', bond: 30 }, logExtra: '路人叹：你倒不像寻常人。' }, tendencyTags: ['谨慎'] },
+      { text: '顺命而行', effects: { addFlag: 'p16_trait_bingruo_hook', attrs: { 福缘: 2, 悟性: 1 }, queueEvent: { id: 'p16_wander_echo', delayYears: 6 }, logExtra: '你将这一日铭刻于心，以待后缘。' }, tendencyTags: ['冒险'] },
+      { text: '逆命一试', effects: { addFlag: 'p16_trait_bingruo_rebel', setRelation: { kind: '挚友', name: '同命路人', bond: 30 }, logExtra: '有人摇头笑：偏要逆着来。' }, tendencyTags: ['谨慎'] },
     ],
   },
   {
@@ -494,8 +494,8 @@ export const PHASE16_CIVIC_TRAIT_WANDER_EVENTS: EventDef[] = [
     once: true,
     conditions: { traits: ['daogu'] },
     choices: [
-      { text: '顺命而行', effects: { addFlag: 'p16_trait_daogu_hook', attrs: { 福缘: 3, 悟性: 1 }, queueEvent: { id: 'p16_wander_echo', delayYears: 3 }, logExtra: '你心有所感，记下了这一日。' }, tendencyTags: ['冒险'] },
-      { text: '逆命一试', effects: { addFlag: 'p16_trait_daogu_rebel', setRelation: { kind: '挚友', name: '同命路人', bond: 30 }, logExtra: '路人叹：你倒不像寻常人。' }, tendencyTags: ['谨慎'] },
+      { text: '顺命而行', effects: { addFlag: 'p16_trait_daogu_hook', attrs: { 福缘: 3, 悟性: 1 }, queueEvent: { id: 'p16_wander_echo', delayYears: 3 }, logExtra: '机缘暗合，你选择顺流而行。' }, tendencyTags: ['冒险'] },
+      { text: '逆命一试', effects: { addFlag: 'p16_trait_daogu_rebel', setRelation: { kind: '挚友', name: '同命路人', bond: 30 }, logExtra: '路人止步：倒像见过你似的。' }, tendencyTags: ['谨慎'] },
     ],
   },
   {
@@ -510,8 +510,8 @@ export const PHASE16_CIVIC_TRAIT_WANDER_EVENTS: EventDef[] = [
     once: true,
     conditions: { traits: ['duxin'] },
     choices: [
-      { text: '顺命而行', effects: { addFlag: 'p16_trait_duxin_hook', attrs: { 福缘: 4, 悟性: 1 }, queueEvent: { id: 'p16_wander_echo', delayYears: 4 }, logExtra: '你心有所感，记下了这一日。' }, tendencyTags: ['冒险'] },
-      { text: '逆命一试', effects: { addFlag: 'p16_trait_duxin_rebel', setRelation: { kind: '挚友', name: '同命路人', bond: 30 }, logExtra: '路人叹：你倒不像寻常人。' }, tendencyTags: ['谨慎'] },
+      { text: '顺命而行', effects: { addFlag: 'p16_trait_duxin_hook', attrs: { 福缘: 4, 悟性: 1 }, queueEvent: { id: 'p16_wander_echo', delayYears: 4 }, logExtra: '你觉命途有应，便依此而行。' }, tendencyTags: ['冒险'] },
+      { text: '逆命一试', effects: { addFlag: 'p16_trait_duxin_rebel', setRelation: { kind: '挚友', name: '同命路人', bond: 30 }, logExtra: '旁人低声：这人不好惹。' }, tendencyTags: ['谨慎'] },
     ],
   },
   {
@@ -542,8 +542,8 @@ export const PHASE16_CIVIC_TRAIT_WANDER_EVENTS: EventDef[] = [
     once: true,
     conditions: { traits: ['qinggong_bone'] },
     choices: [
-      { text: '顺命而行', effects: { addFlag: 'p16_trait_qinggong_bone_hook', attrs: { 福缘: 3, 悟性: 1 }, queueEvent: { id: 'p16_wander_echo', delayYears: 6 }, logExtra: '你心有所感，记下了这一日。' }, tendencyTags: ['冒险'] },
-      { text: '逆命一试', effects: { addFlag: 'p16_trait_qinggong_bone_rebel', setRelation: { kind: '挚友', name: '同命路人', bond: 30 }, logExtra: '路人叹：你倒不像寻常人。' }, tendencyTags: ['谨慎'] },
+      { text: '顺命而行', effects: { addFlag: 'p16_trait_qinggong_bone_hook', attrs: { 福缘: 3, 悟性: 1 }, queueEvent: { id: 'p16_wander_echo', delayYears: 6 }, logExtra: '你默默点头，把这一幕收进心底。' }, tendencyTags: ['冒险'] },
+      { text: '逆命一试', effects: { addFlag: 'p16_trait_qinggong_bone_rebel', setRelation: { kind: '挚友', name: '同命路人', bond: 30 }, logExtra: '旁人侧目：这人眼中有光。' }, tendencyTags: ['谨慎'] },
     ],
   },
   {
@@ -558,7 +558,7 @@ export const PHASE16_CIVIC_TRAIT_WANDER_EVENTS: EventDef[] = [
     needsChoice: true,
     once: true,
     choices: [
-      { text: '顺奇遇而行', effects: { addFlag: 'p16_wander_1', attrs: { 机缘: 2 }, queueEvent: { id: 'p16_wander_cave', delayYears: 2 } }, tendencyTags: ['冒险'] },
+      { text: '顺奇遇而行', effects: { addFlag: 'p16_wander_1', attrs: { 机缘: 2 }, queueEvent: { id: 'p16_wander_cave', delayYears: 2 }, logExtra: '你抚过残碑，风声似剑鸣。' }, tendencyTags: ['冒险'] },
       { text: '不惹是非', effects: { attrs: { 心性: 1 }, addFlag: 'p16_wander_skip', logExtra: '你转身，奇遇留在身后。' }, tendencyTags: ['谨慎'] },
     ],
   },
@@ -574,7 +574,7 @@ export const PHASE16_CIVIC_TRAIT_WANDER_EVENTS: EventDef[] = [
     needsChoice: true,
     once: true,
     choices: [
-      { text: '顺奇遇而行', effects: { addFlag: 'p16_wander_2', attrs: { 机缘: 3 }, queueEvent: { id: 'p16_wander_ghost', delayYears: 3 } }, tendencyTags: ['冒险'] },
+      { text: '顺奇遇而行', effects: { addFlag: 'p16_wander_2', attrs: { 机缘: 3 }, queueEvent: { id: 'p16_wander_ghost', delayYears: 3 }, logExtra: '洞中湿气扑面，你仍往深处去。' }, tendencyTags: ['冒险'] },
       { text: '不惹是非', effects: { attrs: { 心性: 1 }, addFlag: 'p16_wander_skip', logExtra: '你转身，奇遇留在身后。' }, tendencyTags: ['谨慎'] },
     ],
   },
@@ -590,7 +590,7 @@ export const PHASE16_CIVIC_TRAIT_WANDER_EVENTS: EventDef[] = [
     needsChoice: true,
     once: true,
     choices: [
-      { text: '顺奇遇而行', effects: { addFlag: 'p16_wander_3', attrs: { 机缘: 4 }, queueEvent: { id: 'p16_wander_spring', delayYears: 4 } }, tendencyTags: ['冒险'] },
+      { text: '顺奇遇而行', effects: { addFlag: 'p16_wander_3', attrs: { 机缘: 4 }, queueEvent: { id: 'p16_wander_spring', delayYears: 4 }, logExtra: '夜路见影，你跟了上去。' }, tendencyTags: ['冒险'] },
       { text: '不惹是非', effects: { attrs: { 心性: 1 }, addFlag: 'p16_wander_skip', logExtra: '你转身，奇遇留在身后。' }, tendencyTags: ['谨慎'] },
     ],
   },
@@ -606,7 +606,7 @@ export const PHASE16_CIVIC_TRAIT_WANDER_EVENTS: EventDef[] = [
     needsChoice: true,
     once: true,
     choices: [
-      { text: '顺奇遇而行', effects: { addFlag: 'p16_wander_4', attrs: { 机缘: 2 }, queueEvent: { id: 'p16_wander_old', delayYears: 2 } }, tendencyTags: ['冒险'] },
+      { text: '顺奇遇而行', effects: { addFlag: 'p16_wander_4', attrs: { 机缘: 2 }, queueEvent: { id: 'p16_wander_old', delayYears: 2 }, logExtra: '泉水清冽，你掬了一捧。' }, tendencyTags: ['冒险'] },
       { text: '不惹是非', effects: { attrs: { 心性: 1 }, addFlag: 'p16_wander_skip', logExtra: '你转身，奇遇留在身后。' }, tendencyTags: ['谨慎'] },
     ],
   },
@@ -622,7 +622,7 @@ export const PHASE16_CIVIC_TRAIT_WANDER_EVENTS: EventDef[] = [
     needsChoice: true,
     once: true,
     choices: [
-      { text: '顺奇遇而行', effects: { addFlag: 'p16_wander_5', attrs: { 机缘: 3 }, queueEvent: { id: 'p16_wander_map', delayYears: 3 } }, tendencyTags: ['冒险'] },
+      { text: '顺奇遇而行', effects: { addFlag: 'p16_wander_5', attrs: { 机缘: 3 }, queueEvent: { id: 'p16_wander_map', delayYears: 3 }, logExtra: '老人话未完，你已记下线索。' }, tendencyTags: ['冒险'] },
       { text: '不惹是非', effects: { attrs: { 心性: 1 }, addFlag: 'p16_wander_skip', logExtra: '你转身，奇遇留在身后。' }, tendencyTags: ['谨慎'] },
     ],
   },
@@ -638,7 +638,7 @@ export const PHASE16_CIVIC_TRAIT_WANDER_EVENTS: EventDef[] = [
     needsChoice: true,
     once: true,
     choices: [
-      { text: '顺奇遇而行', effects: { addFlag: 'p16_wander_6', attrs: { 机缘: 4 }, queueEvent: { id: 'p16_wander_bird', delayYears: 4 } }, tendencyTags: ['冒险'] },
+      { text: '顺奇遇而行', effects: { addFlag: 'p16_wander_6', attrs: { 机缘: 4 }, queueEvent: { id: 'p16_wander_bird', delayYears: 4 }, logExtra: '残图入手，指尖发烫。' }, tendencyTags: ['冒险'] },
       { text: '不惹是非', effects: { attrs: { 心性: 1 }, addFlag: 'p16_wander_skip', logExtra: '你转身，奇遇留在身后。' }, tendencyTags: ['谨慎'] },
     ],
   },
@@ -654,14 +654,14 @@ export const PHASE16_CIVIC_TRAIT_WANDER_EVENTS: EventDef[] = [
     needsChoice: true,
     once: true,
     choices: [
-      { text: '顺奇遇而行', effects: { addFlag: 'p16_wander_7', attrs: { 机缘: 2 }, queueEvent: { id: 'p16_wander_echo', delayYears: 2 } }, tendencyTags: ['冒险'] },
+      { text: '顺奇遇而行', effects: { addFlag: 'p16_wander_7', attrs: { 机缘: 2 }, queueEvent: { id: 'p16_wander_echo', delayYears: 2 }, logExtra: '灵鸟振翅，你循羽而去。' }, tendencyTags: ['冒险'] },
       { text: '不惹是非', effects: { attrs: { 心性: 1 }, addFlag: 'p16_wander_skip', logExtra: '你转身，奇遇留在身后。' }, tendencyTags: ['谨慎'] },
     ],
   },
   {
     id: 'p16_wander_echo',
     name: '奇遇回响',
-    text: '多年前行事如_echo，今日又逢相似一幕。',
+    text: '多年前行事如镜，今日又逢相似一幕。',
     stages: ['青年', '壮年', '晚年'],
     tags: ['奇遇'],
     chain: 'wanderer',
@@ -670,7 +670,7 @@ export const PHASE16_CIVIC_TRAIT_WANDER_EVENTS: EventDef[] = [
     needsChoice: true,
     once: true,
     choices: [
-      { text: '顺奇遇而行', effects: { addFlag: 'p16_wander_8', attrs: { 机缘: 3 }, queueEvent: { id: 'p16_wander_rain', delayYears: 3 } }, tendencyTags: ['冒险'] },
+      { text: '顺奇遇而行', effects: { addFlag: 'p16_wander_8', attrs: { 机缘: 3 }, queueEvent: { id: 'p16_wander_rain', delayYears: 3 }, logExtra: '旧事重演，你这次仍选择前行。' }, tendencyTags: ['冒险'] },
       { text: '不惹是非', effects: { attrs: { 心性: 1 }, addFlag: 'p16_wander_skip', logExtra: '你转身，奇遇留在身后。' }, tendencyTags: ['谨慎'] },
     ],
   },
@@ -686,7 +686,7 @@ export const PHASE16_CIVIC_TRAIT_WANDER_EVENTS: EventDef[] = [
     needsChoice: true,
     once: true,
     choices: [
-      { text: '顺奇遇而行', effects: { addFlag: 'p16_wander_9', attrs: { 机缘: 4 }, queueEvent: { id: 'p16_wander_stone', delayYears: 4 } }, tendencyTags: ['冒险'] },
+      { text: '顺奇遇而行', effects: { addFlag: 'p16_wander_9', attrs: { 机缘: 4 }, queueEvent: { id: 'p16_wander_stone', delayYears: 4 }, logExtra: '雨幕里，你听见有人唤你旧名。' }, tendencyTags: ['冒险'] },
       { text: '不惹是非', effects: { attrs: { 心性: 1 }, addFlag: 'p16_wander_skip', logExtra: '你转身，奇遇留在身后。' }, tendencyTags: ['谨慎'] },
     ],
   },
@@ -702,7 +702,7 @@ export const PHASE16_CIVIC_TRAIT_WANDER_EVENTS: EventDef[] = [
     needsChoice: true,
     once: true,
     choices: [
-      { text: '顺奇遇而行', effects: { addFlag: 'p16_wander_10', attrs: { 机缘: 2 }, queueEvent: { id: 'p16_wander_night', delayYears: 2 } }, tendencyTags: ['冒险'] },
+      { text: '顺奇遇而行', effects: { addFlag: 'p16_wander_10', attrs: { 机缘: 2 }, queueEvent: { id: 'p16_wander_night', delayYears: 2 }, logExtra: '碑石裂纹似字，你默记于心。' }, tendencyTags: ['冒险'] },
       { text: '不惹是非', effects: { attrs: { 心性: 1 }, addFlag: 'p16_wander_skip', logExtra: '你转身，奇遇留在身后。' }, tendencyTags: ['谨慎'] },
     ],
   },
@@ -718,7 +718,7 @@ export const PHASE16_CIVIC_TRAIT_WANDER_EVENTS: EventDef[] = [
     needsChoice: true,
     once: true,
     choices: [
-      { text: '顺奇遇而行', effects: { addFlag: 'p16_wander_11', attrs: { 机缘: 3 }, queueEvent: { id: 'p16_wander_finale', delayYears: 3 } }, tendencyTags: ['冒险'] },
+      { text: '顺奇遇而行', effects: { addFlag: 'p16_wander_11', attrs: { 机缘: 3 }, queueEvent: { id: 'p16_wander_finale', delayYears: 3 }, logExtra: '夜行不歇，奇缘如影随形。' }, tendencyTags: ['冒险'] },
       { text: '不惹是非', effects: { attrs: { 心性: 1 }, addFlag: 'p16_wander_skip', logExtra: '你转身，奇遇留在身后。' }, tendencyTags: ['谨慎'] },
     ],
   },
@@ -734,7 +734,7 @@ export const PHASE16_CIVIC_TRAIT_WANDER_EVENTS: EventDef[] = [
     needsChoice: true,
     once: true,
     choices: [
-      { text: '顺奇遇而行', effects: { addFlag: 'p16_wander_12', attrs: { 机缘: 4 }, grantTitle: 'wulin_guaijie' }, tendencyTags: ['冒险'] },
+      { text: '顺奇遇而行', effects: { addFlag: 'p16_wander_12', attrs: { 机缘: 4 }, grantTitle: 'wulin_guaijie', logExtra: '你收束一路奇遇，江湖又多一名怪杰。' }, tendencyTags: ['冒险'] },
       { text: '不惹是非', effects: { attrs: { 心性: 1 }, addFlag: 'p16_wander_skip', logExtra: '你转身，奇遇留在身后。' }, tendencyTags: ['谨慎'] },
     ],
   },

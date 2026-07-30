@@ -126,7 +126,7 @@ export const PHASE16_CHILDHOOD_EVENTS: EventDef[] = [
   },
   {
     id: 'p16_child_runaway',
-    name: '离家出走',
+    name: '幼时离家',
     text: '话本读多了，你竟想出去见江湖，包袱都打好。',
     stages: ['幼年', '少年'],
     tags: ['日常'],

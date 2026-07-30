@@ -119,6 +119,13 @@ export const PHASE7_EVENTS: EventDef[] = [
             foePower: 70,
             foeName: '心魔',
             onWin: { setRealm: '大宗师', addFlag: 'broke_through_safe', attrs: { 武力: 10 } },
+            onDraw: {
+              demoteRealm: '先天',
+              attrs: { 体魄: -8, 武力: -8 },
+              addFlags: ['broke_through_safe', 'meridian_gamble'],
+              logExtra:
+                '心魔未退，你也未倒。真气退回丹田那一刻，经脉已伤了大半——境界跌回先天，命却留住了。',
+            },
             onLose: { death: '突破失败，元气尽散', addFlag: 'qi_deviation' },
           },
         },
@@ -206,7 +213,7 @@ export const PHASE7_EVENTS: EventDef[] = [
     needsChoice: true,
     once: true,
     conditions: {
-      anyFlags: ['poisoned', 'emei_poison_kept', 'duyi_path'],
+      anyFlags: ['poisoned_once', 'emei_poison_kept', 'duyi_path'],
       flags: ['omen_poison_done'],
       forbidFlags: ['poison_cleared'],
     },

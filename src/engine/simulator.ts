@@ -3,7 +3,7 @@ import { ORIGINS } from '../data/origins'
 import { TITLES } from '../data/titles'
 import { TRAITS } from '../data/traits'
 import { EVENTS } from '../data/events'
-import { matchSynergies } from '../data/synergies'
+import { matchSynergies, maybeForceSynergyPairs } from '../data/synergies'
 import { attrWeightFactor, traitWeightFactor } from '../lib/traitWeights'
 import {
   ensureSectStoryQueue,
@@ -529,8 +529,22 @@ function isMajorOnlyPause(ev: EventDef, choices: ChoiceDef[]): boolean {
   return choices.some((ch) => hasHardFateHook(ch.effects))
 }
 
-function eventMatches(c: Character, e: EventDef, usedOnce: Set<string>): boolean {
+function eventMatches(
+  c: Character,
+  e: EventDef,
+  usedOnce: Set<string>,
+  fireCount?: Map<string, number>,
+  lastFiredAge?: Map<string, number>,
+): boolean {
   if (e.once && usedOnce.has(e.id)) return false
+  if (e.maxTimes != null && fireCount && (fireCount.get(e.id) ?? 0) >= e.maxTimes) return false
+  if (
+    e.cooldownYears != null &&
+    lastFiredAge?.has(e.id) &&
+    c.age - (lastFiredAge.get(e.id) ?? 0) < e.cooldownYears
+  ) {
+    return false
+  }
   const stage = lifeStage(c.age)
   if (!e.stages.includes(stage)) return false
   if (e.minAge != null && c.age < e.minAge) return false
@@ -562,14 +576,25 @@ function eventMatches(c: Character, e: EventDef, usedOnce: Set<string>): boolean
   return true
 }
 
+function eventBodyText(e: EventDef, priorFires: number): string {
+  if (priorFires <= 0 || !e.repeatTexts?.length) return e.text
+  return e.repeatTexts[Math.min(priorFires - 1, e.repeatTexts.length - 1)] ?? e.text
+}
+
 const STAGE_ORDER: LifeStage[] = ['幼年', '少年', '青年', '壮年', '晚年']
 
 /**
  * 队列到期但暂不匹配时：若仍可能在未来匹配则保留，避免 stage/minAge/缺 flag 导致「排了却播不出」。
  * 永久不可能（错出身/无词条/超 maxAge/once 已用/人生阶段已过完）则丢弃。
  */
-function eventQueueRetryable(c: Character, e: EventDef, usedOnce: Set<string>): boolean {
+function eventQueueRetryable(
+  c: Character,
+  e: EventDef,
+  usedOnce: Set<string>,
+  fireCount?: Map<string, number>,
+): boolean {
   if (e.once && usedOnce.has(e.id)) return false
+  if (e.maxTimes != null && fireCount && (fireCount.get(e.id) ?? 0) >= e.maxTimes) return false
   if (e.maxAge != null && c.age > e.maxAge) return false
   const cond = e.conditions
   if (cond?.origins && !cond.origins.includes(c.originId)) return false
@@ -770,9 +795,18 @@ export function autoPickChoice(c: Character, choices: ChoiceDef[], rng: () => nu
     c.flags.includes('huashan_radical') ||
     c.flags.includes('mozhong_path')
   const refusedDemon = c.flags.includes('refused_demon') || c.flags.includes('pomo_path')
+  // 同题内是否存在明确致死出口：决定「重伤选项」该被压分还是该被视作活路
+  const hasLethalSibling = pool.some(
+    (ch) => !!ch.effects.death || !!ch.effects.combat?.onLose?.death,
+  )
 
   const score = (ch: ChoiceDef): number => {
     let s = 1
+    // 上限在最后统一施加：否则末尾的随机扰动会把压制过的分数重新抬起来
+    let cap = Number.POSITIVE_INFINITY
+    const capAt = (v: number) => {
+      cap = Math.min(cap, v)
+    }
     const tags = ch.tendencyTags ?? []
     const prefer = (t: TendencyTag, n: number) => {
       if (tags.includes(t)) s += n
@@ -866,6 +900,31 @@ export function autoPickChoice(c: Character, choices: ChoiceDef[], rng: () => nu
     if (refusedDemon && goingDemon) s -= 6
     if (c.flags.includes('sect_leave_pending') && staying) s += 2
 
+    // 战斗致死出口：胜负由 resolveCombat 判定，fx.death 为空，故须单独按胜算压制。
+    // 用封顶而非减分——否则「硬闯」类选项的冒险/修炼加成会把惩罚吃干净，AI 等于主动送死。
+    if (fx.combat) {
+      const cb = fx.combat
+      const drawBranch = cb.onDraw ?? cb.onLose
+      if (cb.onLose?.death || drawBranch?.death) {
+        // resolveCombat：diff = 己方战力 + 福缘修正 − 敌方强度 + [-12,12]，diff ≥ 8 才算胜
+        const edge = calcForce(c) + Math.floor((c.attrs.福缘 - 50) / 8) - cb.foePower
+        if (edge <= -4) capAt(0.02)
+        else if (edge < 8) capAt(0.4)
+        else if (edge < 20) capAt(s * 0.6)
+      }
+    }
+
+    // 低体魄时规避重伤选项：余魄扛不住这一刀就别挑。
+    // 但同题若已有致死选项，「重伤」就是那条活路，此时不可再因扣血压分，
+    // 否则等于把角色从「抗旨出逃」推向「饮鸩遵旨」。
+    const bodyCost = -(fx.attrs?.体魄 ?? 0)
+    if (bodyCost > 0 && !fx.death && !hasLethalSibling) {
+      const margin = c.attrs.体魄 - bodyCost
+      if (margin <= 0) capAt(0.05)
+      else if (margin < 10) capAt(0.5)
+      else if (margin < 20) capAt(s * 0.7)
+    }
+
     // 自尽/横死抉择：按死因分型校验，避免「有仇却去饮鸩」或无铺垫自尽
     if (fx.death) {
       const d = fx.death
@@ -885,7 +944,7 @@ export function autoPickChoice(c: Character, choices: ChoiceDef[], rng: () => nu
         s += ok ? -3 : -12
       } else if (poisonDeath) {
         const ok =
-          c.flags.includes('poisoned') ||
+          c.flags.includes('poisoned_once') ||
           c.flags.includes('emei_poison_kept') ||
           c.flags.includes('duyi_path')
         s += ok ? -3 : -10
@@ -902,7 +961,7 @@ export function autoPickChoice(c: Character, choices: ChoiceDef[], rng: () => nu
       }
     }
 
-    return s + rng() * 0.3
+    return Math.min(s + rng() * 0.3, cap)
   }
 
   return pickWeighted(pool, score, rng) ?? pool[0]
@@ -919,6 +978,9 @@ export class LifeSimulator {
   character: Character
   logs: LogEntry[] = []
   usedOnce = new Set<string>()
+  /** 非 once 事件的本局触发次数（用于 cooldown / maxTimes / 审计） */
+  eventFireCount = new Map<string, number>()
+  eventLastFiredAge = new Map<string, number>()
   rng: () => number
   mode: PlayMode
   majorOnly: boolean
@@ -968,9 +1030,13 @@ export class LifeSimulator {
     if (realmIndex(c.realm) >= 4 && age % 5 === 0) {
       c.lifespan = Math.min(160, c.lifespan + 1)
     }
-    // 壮年前自然恢复；晚年不再回血，否则永摸不到寿终
+    // 壮年前自然恢复；52～67 岁只在重伤线下缓慢回稳，使中晚年的伤能养住而非一路见底；
+    // 68 岁后不再回血，寿终通路仍然可达
     if (age < 52 && c.attrs.体魄 < 40) {
       c.attrs.体魄 = clamp(c.attrs.体魄 + 1, 1, 100)
+    } else if (age < 72 && c.attrs.体魄 < 28) {
+      // +2 才能压过同期 -1～-2 的衰减，否则重伤后只会在死线上徘徊
+      c.attrs.体魄 = clamp(c.attrs.体魄 + 2, 1, 100)
     }
     // 伤势回稳后清除「急性重创」烙印，避免多年后体魄归零仍被改写成恶斗死
     if (c.attrs.体魄 >= 10) {
@@ -983,6 +1049,10 @@ export class LifeSimulator {
           f !== 'revenge_pursuit' &&
           f !== 'betrayal_pursuit',
       )
+    }
+    // 劫伤须静养：比寻常外伤难愈，但养回二十上下即算压住，不该跟随余生
+    if (c.attrs.体魄 >= 20 && c.flags.includes('heaven_scar')) {
+      c.flags = c.flags.filter((f) => f !== 'heaven_scar')
     }
     // 走火赌命若熬过：体魄回稳则卸掉急性走火债（慢性可另用 old_ailing）
     if (c.attrs.体魄 >= 10 && c.flags.includes('meridian_gamble')) {
@@ -1267,7 +1337,7 @@ export class LifeSimulator {
           return true
         }
         if (pickedIds.has(ev.id)) return true
-        if (eventMatches(c, ev, this.usedOnce)) {
+        if (eventMatches(c, ev, this.usedOnce, this.eventFireCount, this.eventLastFiredAge)) {
           toPlay.push(ev)
           pickedIds.add(ev.id)
           return false
@@ -1277,13 +1347,16 @@ export class LifeSimulator {
           this.noteUnfinishedQuest(ev.name || ev.id)
           return false
         }
-        return eventQueueRetryable(c, ev, this.usedOnce)
+        return eventQueueRetryable(c, ev, this.usedOnce, this.eventFireCount)
       })
 
-      // 2) 其余名额随机（链式事件权重更高）
+      // 2) 其余名额随机（链式事件权重更高）；weight≤0 仅走队列，不进随机池
       while (toPlay.length < count) {
         const candidates = EVENTS.filter(
-          (e) => eventMatches(c, e, this.usedOnce) && !pickedIds.has(e.id),
+          (e) =>
+            e.weight > 0 &&
+            eventMatches(c, e, this.usedOnce, this.eventFireCount, this.eventLastFiredAge) &&
+            !pickedIds.has(e.id),
         )
         const ev = pickWeighted(candidates, (e) => eventWeight(c, e), this.rng)
         if (!ev) break
@@ -1293,6 +1366,10 @@ export class LifeSimulator {
 
       for (const ev of toPlay) {
         if (ev.once) this.usedOnce.add(ev.id)
+        const priorFires = this.eventFireCount.get(ev.id) ?? 0
+        this.eventFireCount.set(ev.id, priorFires + 1)
+        this.eventLastFiredAge.set(ev.id, c.age)
+        const bodyText = eventBodyText(ev, priorFires)
         if (ev.importance >= 4) hadMajor = true
 
         const choices = ev.choices.filter((ch) => passChoiceReq(c, ch))
@@ -1313,7 +1390,7 @@ export class LifeSimulator {
             age: c.age,
             kind: 'event',
             title: ev.name,
-            text: ev.text,
+            text: bodyText,
             importance: ev.importance,
             eventId: ev.id,
           })
@@ -1330,7 +1407,7 @@ export class LifeSimulator {
             ? autoPickChoice(c, finalChoices, this.rng)
             : finalChoices[0]
 
-        this.resolveEvent(ev, choice, pushYear)
+        this.resolveEvent(ev, choice, pushYear, bodyText)
 
         const deathMsg =
           [...yearLogs].reverse().find((l) => l.kind === 'death')?.text ?? choice.effects.death
@@ -1439,6 +1516,7 @@ export class LifeSimulator {
     ev: EventDef,
     choice: ChoiceDef,
     pushYear: (...entries: LogEntry[]) => void,
+    bodyText = ev.text,
   ) {
     const c = this.character
     // 全自动低重要度压成一行；半自动或重要事件展开正文
@@ -1448,7 +1526,7 @@ export class LifeSimulator {
         age: c.age,
         kind: 'event',
         title: ev.name,
-        text: ev.text,
+        text: bodyText,
         importance: ev.importance,
         eventId: ev.id,
       })
@@ -1519,6 +1597,7 @@ export function createBirth(
   const locked = (options?.lockedTraitIds ?? []).filter((id) => traitPool.some((t) => t.id === id))
   const traitCount = Math.max(locked.length, randInt(rng, 2, 4))
   const traitIds = pickWeightedTraits(traitPool, traitCount, locked, rng)
+  maybeForceSynergyPairs(traitIds, traitPool, rng)
 
   const base: CharacterAttrs = {
     根骨: randInt(rng, 25, 75),

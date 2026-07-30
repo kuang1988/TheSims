@@ -152,6 +152,12 @@ export interface EventDef {
   importance: 1 | 2 | 3 | 4 | 5
   needsChoice: boolean
   once?: boolean
+  /** 同一事件两次触发之间至少间隔的年数（含随机池与队列） */
+  cooldownYears?: number
+  /** 单局人生内最多触发次数（含随机池与队列） */
+  maxTimes?: number
+  /** 第 2、3… 次触发时轮换正文（索引 = 已触发次数；缺省回落 text） */
+  repeatTexts?: string[]
   minAge?: number
   maxAge?: number
   /** 剧情链标识，用于权重加成与互斥 */
